@@ -76,24 +76,19 @@ export default class MoreCoverPlugin extends Plugin {
         this.setting = new Setting({
             confirmCallback: () => {
                 const accessKey = unsplashAccessKeyTextArea.value;
-                console.log("保存配置", accessKey);
                 const random = this.data[STORAGE_NAME].openConfigByRandom;
-                console.log("------------------------1", random);
-
+                // 保存配置
                 this.saveData(STORAGE_NAME, {
                     unsplashAccessKey: accessKey,
                     openConfigByRandom: false
                 });
-                console.log("------------------------2");
-                console.log(accessKey);
-                console.log("------------------------3");
+
                 if (accessKey == "" || typeof accessKey == "undefined") {
-                    console.log("------------------------4");
+                    // 没有设置 Unsplash
                     showMessage(this.i18n.unsplashAccessKeyNotNull);
                 }
-                if (random && accessKey != "") {
-                    console.log("------------------------5");
 
+                if (random && accessKey != "") {
                     this.showDialog();
                 }
             }
@@ -120,6 +115,52 @@ export default class MoreCoverPlugin extends Plugin {
 
     onunload() {
         console.log(this.i18n.byePlugin);
+    }
+
+    private getCurrentPage() {
+        let currentScreen;
+        let currentPage;
+        try {
+            //获取当前屏幕
+            currentScreen = document.querySelector(".layout__wnd--active");
+            //获取当前页面
+            currentPage = currentScreen.querySelector(
+                ".fn__flex-1.protyle:not(.fn__none)"
+            );
+            return currentPage;
+        } catch (e) {
+            console.error("未能获取到页面焦点！");
+        }
+        throw new Error("未能获取到页面焦点！");
+    }
+
+    private getFileId() {
+        //获取当前页面
+        const currentPage = this.getCurrentPage();
+        //获取当前页面id
+        const currentPageID = currentPage.querySelector(
+            "span.protyle-breadcrumb__item--active"
+        ).getAttribute("data-node-id");
+
+        return currentPageID;
+    }
+
+    private changeCover(event: Event) {
+        console.log("-----------click change cover", event);
+        const target = event.target as HTMLElement;
+        const url = target.dataset.downloadUrl;
+        console.log("图片下载地址：", url);
+        const currentId = this.getFileId();
+        console.log("currentId", currentId);
+        fetch("/api/attr/setBlockAttrs", {
+            method: "post",
+            body: JSON.stringify({
+                id: currentId,
+                attrs: {
+                    "title-img": `background-image:url(${url})`
+                }
+            })
+        }).then(r => console.log(r));
     }
 
     private showDialog() {
@@ -162,6 +203,7 @@ export default class MoreCoverPlugin extends Plugin {
     <div style="width: 100%; height: 100%;">
     <img src="${value.urls.thumb}"
             referrerpolicy="same-origin"
+            data-download-url="${value.urls.full}"
             style="display: block; object-fit: cover; border-radius: 3px; width: 100%; height: 64px; object-position: center 0;" alt="${value.alt_description}"/>
     </div>
 </div>
@@ -171,6 +213,7 @@ export default class MoreCoverPlugin extends Plugin {
         target="_blank" rel="noopener noreferrer"
         style="display: inline; color: inherit; text-decoration: underline; user-select: none; cursor: pointer;">${value.user.name}</a>
 </div>`;
+                        div.querySelector("img").addEventListener(this.getEventName(), ev => this.changeCover(ev));
                         show.appendChild(div);
                     });
                 });
@@ -194,14 +237,14 @@ export default class MoreCoverPlugin extends Plugin {
         this.setting.open(this.i18n.topBarIcon);
     }
 
-    private addChangeIconListener(event: CustomEvent<any>) {
+    private addChangeIconListener(event: CustomEvent) {
         const bg = event.detail.background.element as HTMLElement;
         // 获取“随机题头图” 按钮
         const buttons = bg.querySelectorAll("span[data-type=\"random\"]");
         buttons.forEach((button, idx) => {
             console.log(`正在绑定随机题头图按钮 ${idx}：`, button);
             button.addEventListener(this.getEventName(), ev => {
-                console.log("触发点击事件", ev);
+                console.log(`${this.i18n.topBarIcon}: 触发点击事件`);
                 this.configOrShowDialog();
                 ev.preventDefault();
                 ev.stopPropagation();

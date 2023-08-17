@@ -13,13 +13,12 @@
     "desktop"
   ],
   "displayName": {
-    "default": "随机题头图",
-    "zh_CN": "随机题头图",
-    "en_US": "MoreCover"
+    "default": "MoreCover",
+    "zh_CN": "随机题头图"
   },
   "description": {
-    "default": "随机题头图，支持 Unsplash",
-    "zh_CN": "MoreCover, support Unsplash"
+    "default": "MoreCover, support Unsplash",
+    "zh_CN": "随机题头图，支持 Unsplash"
   },
   "readme": {
     "default": "README.md",
