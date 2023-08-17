@@ -161,7 +161,7 @@ export default class MoreCoverPlugin extends Plugin {
     <button id="more-cover-search-unsplash-button">搜索</button>
     </div>
     <div class="fn__hr"></div>
-    <div id="more-cover-search-unsplash-show" style="display: flex; flex-wrap: wrap; align-content: flex-start; background: white; padding: 12px 12px;">
+    <div id="more-cover-search-unsplash-show" style="display: flex; flex-wrap: wrap; align-content: flex-start; background: white; ">
     </div>
 </div>`,
             width: this.isMobile ? "92vw" : "600px",
