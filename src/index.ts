@@ -48,20 +48,20 @@ interface Background {
     transparentData: string
 }
 
-class Config {
+interface Config {
     name: string;
     priority: number;
 }
 
-class PixabayConfig extends Config {
-    name: "Pixabay";
-    priority: 1;
+class PixabayConfig implements Config {
+    name = "Pixabay";
+    priority = 1;
     key = "";
 }
 
-class UnsplashConfig extends Config {
-    name: "Unsplash";
-    priority: 2;
+class UnsplashConfig implements Config {
+    name = "Unsplash";
+    priority = 2;
     accessKey = "";
 }
 
@@ -74,10 +74,15 @@ export default class MoreCoverPlugin extends Plugin {
 
     private isMobile: boolean;
 
+    name = this.i18n.pluginName;
+    displayName = this.i18n.pluginName;
+
     onload() {
         // this.removeData(STORAGE_NAME);
         this.data[STORAGE_NAME] = new Configs();
         console.log("onload", this.getConfig());
+        console.log("new config", new Configs());
+        console.log("new Configs().unsplash.name", new Configs().unsplash.name);
 
         const frontEnd = getFrontend();
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
@@ -105,15 +110,51 @@ export default class MoreCoverPlugin extends Plugin {
             }
         });
         // 添加配置
-        this.setting.addItem({
-            title: "Unsplash Access Key",
-            createActionElement: () => {
-                unsplashAccessKeyTextArea.className = "b3-text-field fn__block";
-                unsplashAccessKeyTextArea.placeholder = this.i18n.unsplashAccessKeyPlaceHolder;
-                console.log(this.getConfig());
-                unsplashAccessKeyTextArea.value = this.getConfig().unsplash.accessKey;
-                return unsplashAccessKeyTextArea;
-            },
+        // this.setting.addItem({
+        //     title: "Unsplash",
+        //     description: "这里是描述",
+        //     createActionElement: () => {
+        //         unsplashAccessKeyTextArea.className = "b3-text-field fn__block";
+        //         unsplashAccessKeyTextArea.placeholder = this.i18n.unsplashAccessKeyPlaceHolder;
+        //         console.log(this.getConfig());
+        //         unsplashAccessKeyTextArea.value = this.getConfig().unsplash.accessKey;
+        //         return unsplashAccessKeyTextArea;
+        //     },
+        // });
+    }
+
+    openSetting() {
+        const configHtml = `
+<div class="plugin-more-cover__config">
+    <fieldset>
+        <legend>${this.getConfig().unsplash.name}</legend>
+        aaaaaaaaaaaaaaaaaaaa
+    </fieldset>
+</div>        
+        `;
+
+        const dialog = new Dialog({
+            title: this.name,
+            content: `<div class="b3-dialog__content">${configHtml}</div>
+<div class="b3-dialog__action">
+    <button class="b3-button b3-button--cancel">${this.i18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${this.i18n.save}</button>
+</div>`,
+            width: this.isMobile ? "92vw" : "520px",
+        });
+        const inputElement = dialog.element.querySelector("textarea");
+        inputElement.value = this.data[STORAGE_NAME].readonlyText;
+        const btnsElement = dialog.element.querySelectorAll(".b3-button");
+        dialog.bindInput(inputElement, () => {
+            (btnsElement[1] as HTMLButtonElement).click();
+        });
+        inputElement.focus();
+        btnsElement[0].addEventListener("click", () => {
+            dialog.destroy();
+        });
+        btnsElement[1].addEventListener("click", () => {
+            this.saveData(STORAGE_NAME, {readonlyText: inputElement.value});
+            dialog.destroy();
         });
     }
 
