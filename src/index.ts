@@ -48,15 +48,36 @@ interface Background {
     transparentData: string
 }
 
+class Config {
+    name: string;
+    priority: number;
+}
+
+class PixabayConfig extends Config {
+    name: "Pixabay";
+    priority: 1;
+    key = "";
+}
+
+class UnsplashConfig extends Config {
+    name: "Unsplash";
+    priority: 2;
+    accessKey = "";
+}
+
+class Configs {
+    unsplash: UnsplashConfig = new UnsplashConfig();
+    pixabay: PixabayConfig = new PixabayConfig();
+}
+
 export default class MoreCoverPlugin extends Plugin {
 
     private isMobile: boolean;
 
     onload() {
-        this.data[STORAGE_NAME] = {
-            openConfigByRandom: false,
-            unsplashAccessKey: "",
-        };
+        // this.removeData(STORAGE_NAME);
+        this.data[STORAGE_NAME] = new Configs();
+        console.log("onload", this.getConfig());
 
         const frontEnd = getFrontend();
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
@@ -72,20 +93,14 @@ export default class MoreCoverPlugin extends Plugin {
         this.setting = new Setting({
             confirmCallback: () => {
                 const accessKey = unsplashAccessKeyTextArea.value;
-                const random = this.data[STORAGE_NAME].openConfigByRandom;
                 // 保存配置
-                this.saveData(STORAGE_NAME, {
-                    unsplashAccessKey: accessKey,
-                    openConfigByRandom: false
-                });
+                const config = this.getConfig();
+                config.unsplash.accessKey = accessKey;
+                this.saveData(STORAGE_NAME, config);
 
                 if (accessKey == "" || typeof accessKey == "undefined") {
                     // 没有设置 Unsplash
                     showMessage(this.i18n.unsplashAccessKeyNotNull);
-                }
-
-                if (random && accessKey != "") {
-                    // this.showDialog(background);
                 }
             }
         });
@@ -95,18 +110,29 @@ export default class MoreCoverPlugin extends Plugin {
             createActionElement: () => {
                 unsplashAccessKeyTextArea.className = "b3-text-field fn__block";
                 unsplashAccessKeyTextArea.placeholder = this.i18n.unsplashAccessKeyPlaceHolder;
-                unsplashAccessKeyTextArea.value = this.data[STORAGE_NAME].unsplashAccessKey;
+                console.log(this.getConfig());
+                unsplashAccessKeyTextArea.value = this.getConfig().unsplash.accessKey;
                 return unsplashAccessKeyTextArea;
             },
         });
     }
 
     onLayoutReady() {
-        this.loadData(STORAGE_NAME);
+        this.loadData(STORAGE_NAME).then(r => {
+            if (r == "") {
+                this.saveData(STORAGE_NAME, new Configs())
+                    .then(() => console.log(`初始化${this.i18n.pluginName}配置完成`));
+            }
+        });
+
         console.log(`${this.i18n.pluginName} is loaded`);
         this.eventBus.on("loaded-protyle", event => {
             this.addChangeIconListener(event);
         });
+    }
+
+    private getConfig(): Configs {
+        return this.data[STORAGE_NAME];
     }
 
     private changeCover(event: Event, background: Background, dialog: Dialog) {
@@ -172,7 +198,7 @@ export default class MoreCoverPlugin extends Plugin {
             // @ts-ignore
             const searchValue = dialog.element.querySelector("#more-cover-search-unsplash-input").value;
             if (searchValue) {
-                const url = "https://api.unsplash.com/search/photos?per_page=32&query=" + searchValue + "&client_id=" + this.data[STORAGE_NAME].unsplashAccessKey;
+                const url = "https://api.unsplash.com/search/photos?per_page=32&query=" + searchValue + "&client_id=" + this.getConfig().unsplash.accessKey;
                 fetchGet(url, (response: UnsplashResp) => {
                     if (response.total <= 0) {
                         console.log(`${this.i18n.pluginName}: 找不到图片`);
@@ -216,13 +242,13 @@ export default class MoreCoverPlugin extends Plugin {
      * @private
      */
     private configOrShowDialog(background: Background) {
-        if (this.data[STORAGE_NAME].unsplashAccessKey) {
+        console.log("configOrShowDialog", this.getConfig());
+        if (this.getConfig().unsplash.accessKey) {
             // 已有配置文件，直接打开对话框
             this.showDialog(background);
             return;
         }
         // 打开对话框
-        this.data[STORAGE_NAME].openConfigByRandom = true;
         this.setting.open(this.i18n.pluginName);
     }
 
