@@ -109,9 +109,6 @@ export default class MoreCoverPlugin extends Plugin {
         });
     }
 
-    onunload() {
-    }
-
     private changeCover(event: Event, background: Background, dialog: Dialog) {
         const target = event.target as HTMLElement;
         const imageId = target.dataset.imageId;
