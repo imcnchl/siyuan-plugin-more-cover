@@ -1,48 +1,93 @@
 import {
-    Plugin,
-    showMessage,
+    adaptHotkey,
     confirm,
     Dialog,
+    fetchGet,
+    getBackend,
+    getFrontend,
+    IModel,
+    IWebSocketData,
     Menu,
     openTab,
-    adaptHotkey,
-    getFrontend,
-    getBackend,
-    IModel,
+    Plugin,
+    Protyle,
     Setting,
-    fetchPost,
-    Protyle
+    showMessage
 } from "siyuan";
 import "./index.scss";
 
-const STORAGE_NAME = "menu-config";
+const STORAGE_NAME = "more-cover-config";
 const TAB_TYPE = "custom_tab";
 const DOCK_TYPE = "dock_tab";
 
-export default class PluginSample extends Plugin {
+export interface UnsplashUrls {
+    raw: string;
+    full: string;
+    regular: string;
+    small: string;
+    thumb: string;
+    small_s3: string;
+}
+
+export interface UnsplashLinks {
+    self: string;
+    html: string;
+    download: string;
+    download_location: string;
+}
+
+export interface UnsplashUser {
+    id: string;
+    name: string;
+}
+
+export interface UnsplashImage {
+    id: string;
+    description: string;
+    alt_description: string;
+    urls: UnsplashUrls;
+    links: UnsplashLinks;
+    user: UnsplashUser
+}
+
+export interface UnsplashResp extends IWebSocketData {
+    total: number;
+    total_pages: number;
+    results: UnsplashImage[];
+}
+
+
+export default class MoreCoverPlugin extends Plugin {
 
     private customTab: () => IModel;
     private isMobile: boolean;
     private blockIconEventBindThis = this.blockIconEvent.bind(this);
 
     onload() {
-        this.data[STORAGE_NAME] = {readonlyText: "Readonly"};
+        this.data[STORAGE_NAME] = {
+            unsplashAccessKey: "",
+            unsplashSecretKey: ""
+        };
 
         const frontEnd = getFrontend();
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
+
         // 图标的制作参见帮助文档
-        this.addIcons(`<symbol id="iconFace" viewBox="0 0 32 32">
-<path d="M13.667 17.333c0 0.92-0.747 1.667-1.667 1.667s-1.667-0.747-1.667-1.667 0.747-1.667 1.667-1.667 1.667 0.747 1.667 1.667zM20 15.667c-0.92 0-1.667 0.747-1.667 1.667s0.747 1.667 1.667 1.667 1.667-0.747 1.667-1.667-0.747-1.667-1.667-1.667zM29.333 16c0 7.36-5.973 13.333-13.333 13.333s-13.333-5.973-13.333-13.333 5.973-13.333 13.333-13.333 13.333 5.973 13.333 13.333zM14.213 5.493c1.867 3.093 5.253 5.173 9.12 5.173 0.613 0 1.213-0.067 1.787-0.16-1.867-3.093-5.253-5.173-9.12-5.173-0.613 0-1.213 0.067-1.787 0.16zM5.893 12.627c2.28-1.293 4.040-3.4 4.88-5.92-2.28 1.293-4.040 3.4-4.88 5.92zM26.667 16c0-1.040-0.16-2.040-0.44-2.987-0.933 0.2-1.893 0.32-2.893 0.32-4.173 0-7.893-1.92-10.347-4.92-1.4 3.413-4.187 6.093-7.653 7.4 0.013 0.053 0 0.12 0 0.187 0 5.88 4.787 10.667 10.667 10.667s10.667-4.787 10.667-10.667z"></path>
-</symbol>
-<symbol id="iconSaving" viewBox="0 0 32 32">
-<path d="M20 13.333c0-0.733 0.6-1.333 1.333-1.333s1.333 0.6 1.333 1.333c0 0.733-0.6 1.333-1.333 1.333s-1.333-0.6-1.333-1.333zM10.667 12h6.667v-2.667h-6.667v2.667zM29.333 10v9.293l-3.76 1.253-2.24 7.453h-7.333v-2.667h-2.667v2.667h-7.333c0 0-3.333-11.28-3.333-15.333s3.28-7.333 7.333-7.333h6.667c1.213-1.613 3.147-2.667 5.333-2.667 1.107 0 2 0.893 2 2 0 0.28-0.053 0.533-0.16 0.773-0.187 0.453-0.347 0.973-0.427 1.533l3.027 3.027h2.893zM26.667 12.667h-1.333l-4.667-4.667c0-0.867 0.12-1.72 0.347-2.547-1.293 0.333-2.347 1.293-2.787 2.547h-8.227c-2.573 0-4.667 2.093-4.667 4.667 0 2.507 1.627 8.867 2.68 12.667h2.653v-2.667h8v2.667h2.68l2.067-6.867 3.253-1.093v-4.707z"></path>
+        this.addIcons(`<symbol id="iconMoreCoverPlugin" viewBox="0 0 32 32">
+<path d="M6.659 1.333c0.681 0.001 1.242 0.512 1.322 1.171l0.001 0.006 0.009 0.156-0.001 2.667h12.027c3.577 0.003 6.494 2.824 6.65 6.363l0 0.014 0.005 0.289v12h2.663c0.736 0.001 1.332 0.597 1.332 1.333 0 0.681-0.51 1.243-1.169 1.323l-0.006 0.001-0.157 0.009h-2.663v2.667c-0.017 0.723-0.607 1.304-1.333 1.304-0.671 0-1.226-0.495-1.319-1.14l-0.001-0.007-0.008-0.156v-2.667h-12.025c-3.577-0.003-6.494-2.824-6.65-6.363l-0-0.014-0.005-0.289-0.001-12h-2.661c-0.736-0.001-1.332-0.597-1.332-1.333 0-0.681 0.51-1.243 1.169-1.323l0.006-0.001 0.157-0.009h2.661v-2.667c0-0.736 0.596-1.333 1.332-1.333h0zM7.989 8v12c0 0.001 0 0.002 0 0.003 0 2.124 1.657 3.861 3.749 3.99l0.011 0.001 0.235 0.007h12.025v-12c0-0.001 0-0.002 0-0.003 0-2.124-1.656-3.861-3.747-3.99l-0.011-0.001-0.235-0.007h-12.027z"></path>
+<path d="M10.667 12c0-0.736 0.597-1.333 1.333-1.333s1.333 0.597 1.333 1.333v0c0 0.736-0.597 1.333-1.333 1.333s-1.333-0.597-1.333-1.333v0zM10.735 20.235c-0.043-0.086-0.068-0.187-0.068-0.294 0-0.146 0.047-0.28 0.126-0.39l-0.001 0.002 3.337-4.64c0.115-0.161 0.301-0.265 0.511-0.265 0.189 0 0.358 0.084 0.473 0.216l0.001 0.001 0.287 0.329c0.116 0.132 0.285 0.215 0.473 0.215 0.197 0 0.374-0.091 0.489-0.234l0.001-0.001 0.813-1.009c0.116-0.144 0.293-0.236 0.491-0.236 0.235 0 0.44 0.129 0.548 0.321l0.002 0.003 3.031 5.36c0.054 0.094 0.086 0.207 0.086 0.328s-0.031 0.232-0.086 0.329l0.002-0.003c-0.109 0.196-0.315 0.326-0.55 0.328h-9.395c-0.249-0.001-0.463-0.146-0.566-0.355l-0.002-0.004z"></path>
 </symbol>`);
 
+        // 添加插件按钮到顶栏
         const topBarElement = this.addTopBar({
-            icon: "iconFace",
-            title: this.i18n.addTopBarIcon,
+        // this.addTopBar({
+            icon: "iconMoreCoverPlugin",
+            title: this.i18n.topBarIcon,
             position: "right",
             callback: () => {
+                console.log("-------callback");
+                // this.showDialog();
+                // 添加菜单
                 if (this.isMobile) {
                     this.addMenu();
                 } else {
@@ -139,32 +184,47 @@ export default class PluginSample extends Plugin {
             }
         });
 
-        const textareaElement = document.createElement("textarea");
+        const unsplashAccessKeyTextArea = document.createElement("textarea");
+        const unsplashSecretKeyTextArea = document.createElement("textarea");
         this.setting = new Setting({
             confirmCallback: () => {
-                this.saveData(STORAGE_NAME, {readonlyText: textareaElement.value});
+                this.saveData(STORAGE_NAME, {
+                    unsplashAccessKey: unsplashAccessKeyTextArea.value,
+                    unsplashSecretKey: unsplashSecretKeyTextArea.value
+                });
             }
         });
+        // 添加配置
         this.setting.addItem({
-            title: "Readonly text",
+            title: "Unsplash Access Key",
             createActionElement: () => {
-                textareaElement.className = "b3-text-field fn__block";
-                textareaElement.placeholder = "Readonly text in the menu";
-                textareaElement.value = this.data[STORAGE_NAME].readonlyText;
-                return textareaElement;
+                unsplashAccessKeyTextArea.className = "b3-text-field fn__block";
+                unsplashAccessKeyTextArea.placeholder = this.i18n.unsplashAccessKeyPlaceHolder;
+                unsplashAccessKeyTextArea.value = this.data[STORAGE_NAME].unsplashAccessKey;
+                return unsplashAccessKeyTextArea;
             },
         });
-        const btnaElement = document.createElement("button");
-        btnaElement.className = "b3-button b3-button--outline fn__flex-center fn__size200";
-        btnaElement.textContent = "Open";
-        btnaElement.addEventListener("click", () => {
-            window.open("https://github.com/siyuan-note/plugin-sample");
-        });
         this.setting.addItem({
-            title: "Open plugin url",
-            description: "Open plugin url in browser",
-            actionElement: btnaElement,
+            title: "Unsplash Secret Key",
+            createActionElement: () => {
+                unsplashSecretKeyTextArea.className = "b3-text-field fn__block";
+                unsplashSecretKeyTextArea.placeholder = this.i18n.unsplashSecretKeyPlaceHolder;
+                unsplashSecretKeyTextArea.value = this.data[STORAGE_NAME].unsplashSecretKey;
+                return unsplashSecretKeyTextArea;
+            },
         });
+
+        // const btnaElement = document.createElement("button");
+        // btnaElement.className = "b3-button b3-button--outline fn__flex-center fn__size200";
+        // btnaElement.textContent = "Open";
+        // btnaElement.addEventListener("click", () => {
+        //     window.open("https://github.com/siyuan-note/plugin-sample");
+        // });
+        // this.setting.addItem({
+        //     title: "Open plugin url",
+        //     description: "Open plugin url in browser",
+        //     actionElement: btnaElement,
+        // });
 
         this.protyleSlash = [{
             filter: ["insert emoji 😊", "插入表情 😊", "crbqwx"],
@@ -233,26 +293,67 @@ export default class PluginSample extends Plugin {
 
     private showDialog() {
         const dialog = new Dialog({
-            title: "Info",
-            content: `<div class="b3-dialog__content">
-    <div>API demo:</div>
+            title: this.i18n.topBarIcon,
+            content: `<div class="b3-dialog__content" style="background: white">
+    <div>
+    <input id="more-cover-search-unsplash-input" type="text" placeholder="${this.i18n.searchUnsplashPlaceholder}"/>
+    <button id="more-cover-search-unsplash-button">搜索</button>
+    </div>
     <div class="fn__hr"></div>
-    <div class="plugin-sample__time">System current time: <span id="time"></span></div>
-    <div class="fn__hr"></div>
-    <div class="fn__hr"></div>
-    <div>Protyle demo:</div>
-    <div class="fn__hr"></div>
-    <div id="protyle" style="height: 360px;"></div>
+    <div id="more-cover-search-unsplash-show" style="display: flex; flex-wrap: wrap; align-content: flex-start; background: white; padding: 12px 12px;">
+        
+    </div>
 </div>`,
-            width: this.isMobile ? "92vw" : "560px",
+            width: this.isMobile ? "92vw" : "600px",
             height: "540px",
         });
-        new Protyle(this.app, dialog.element.querySelector("#protyle"), {
-            blockId: "20200812220555-lj3enxa",
+
+        document.getElementById("more-cover-search-unsplash-button").addEventListener("click", () => {
+            // @ts-ignore
+            const searchValue = dialog.element.querySelector("#more-cover-search-unsplash-input").value;
+            if (searchValue) {
+                const url = "https://api.unsplash.com/search/photos?per_page=32&query=" + searchValue + "&client_id=" + this.data[STORAGE_NAME].unsplashAccessKey;
+                fetchGet(url, (response: UnsplashResp) => {
+                    if (response.total <= 0) {
+                        console.log("找不到图片");
+                        return;
+                    }
+                    const show = dialog.element.querySelector("#more-cover-search-unsplash-show");
+                    response.results.forEach(value => {
+                        const div = document.createElement("div");
+                        div.style.width = "20%";
+                        div.style.padding = "3px";
+                        div.style.boxSizing = "border-box";
+                        div.style.textAlign = "center";
+                        div.innerHTML = `
+                            <div role="button" tabindex="0"
+                                style="user-select: none; transition: background 20ms ease-in 0s; cursor: pointer;">
+                                <div style="width: 100%; height: 100%;">
+                                <img src="${value.urls.thumb}"
+                                        referrerpolicy="same-origin"
+                                        style="display: block; object-fit: cover; border-radius: 3px; width: 100%; height: 64px; object-position: center 0;" alt="${value.alt_description}"/>
+                                </div>
+                            </div>
+                            <div
+                                style="font-size: 12px; line-height: 16px; color: rgba(55, 53, 47, 0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; margin-bottom: 4px;">
+                                by <a href="${value.links.html}"
+                                    target="_blank" rel="noopener noreferrer"
+                                    style="display: inline; color: inherit; text-decoration: underline; user-select: none; cursor: pointer;">${value.user.name}</a>
+                            </div>`;
+                        show.appendChild(div);
+                    });
+                });
+            }
         });
-        fetchPost("/api/system/currentTime", {}, (response) => {
-            dialog.element.querySelector("#time").innerHTML = new Date(response.data).toString();
-        });
+        // new Protyle(this.app, dialog.element.querySelector("#protyle"), {
+        //     blockId: "20200812220555-lj3enxa",
+        // });
+        // fetchPost("/api/system/currentTime", {}, (response) => {
+        //     dialog.element.querySelector("#time").innerHTML = new Date(response.data).toString();
+        // });
+        // console.log("searchValue=", searchValue);
+
+
     }
 
     private addMenu(rect?: DOMRect) {
@@ -275,7 +376,7 @@ export default class PluginSample extends Plugin {
                     const tab = openTab({
                         app: this.app,
                         custom: {
-                            icon: "iconFace",
+                            icon: "iconMoreCoverPlugin",
                             title: "Custom Tab",
                             data: {
                                 text: "This is my custom tab",

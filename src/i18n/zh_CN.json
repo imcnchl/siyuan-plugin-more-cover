@@ -1,5 +1,7 @@
 {
-  "addTopBarIcon": "使用插件添加一个顶栏按钮",
+  "topBarIcon": "随机题头图",
+  "unsplashAccessKeyPlaceHolder": "请输入 Unsplash Access Key",
+  "searchUnsplashPlaceholder": "查找一张图片",
   "cancel": "取消",
   "save": "保存",
   "byeMenu": "再见，菜单！",
