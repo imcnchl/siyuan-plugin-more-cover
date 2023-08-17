@@ -59,9 +59,7 @@ export interface UnsplashResp extends IWebSocketData {
 
 export default class MoreCoverPlugin extends Plugin {
 
-    private customTab: () => IModel;
     private isMobile: boolean;
-    private blockIconEventBindThis = this.blockIconEvent.bind(this);
 
     onload() {
         this.data[STORAGE_NAME] = {
@@ -86,8 +84,7 @@ export default class MoreCoverPlugin extends Plugin {
             position: "right",
             callback: () => {
                 console.log("-------callback");
-                // this.showDialog();
-                // 添加菜单
+                this.showDialog();
             }
         });
 
@@ -104,23 +101,6 @@ export default class MoreCoverPlugin extends Plugin {
                     showMessage(`[${this.name}]: ${this.i18n.removedData}`);
                 });
             });
-        });
-
-        this.addStatusBar({
-            element: statusIconTemp.content.firstElementChild as HTMLElement,
-        });
-
-        this.customTab = this.addTab({
-            type: TAB_TYPE,
-            init() {
-                this.element.innerHTML = `<div class="plugin-sample__custom-tab">${this.data.text}</div>`;
-            },
-            beforeDestroy() {
-                console.log("before destroy tab:", TAB_TYPE);
-            },
-            destroy() {
-                console.log("destroy tab:", TAB_TYPE);
-            }
         });
 
         this.addCommand({
