@@ -103,23 +103,6 @@ export default class MoreCoverPlugin extends Plugin {
             });
         });
 
-        this.addCommand({
-            langKey: "showDialog",
-            hotkey: "⇧⌘M",
-            callback: () => {
-                this.showDialog();
-            },
-            fileTreeCallback: (file: any) => {
-                console.log(file, "fileTreeCallback");
-            },
-            editorCallback: (protyle: any) => {
-                console.log(protyle, "editorCallback");
-            },
-            dockCallback: (element: HTMLElement) => {
-                console.log(element, "dockCallback");
-            },
-        });
-
         this.addDock({
             config: {
                 position: "LeftBottom",
