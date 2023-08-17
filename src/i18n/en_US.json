@@ -1,5 +1,8 @@
 {
-  "addTopBarIcon": "Add a top bar icon by plugin",
+  "topBarIcon": "MoreCover",
+  "unsplashAccessKeyPlaceHolder": "Please input Unsplash Access Key",
+  "unsplashSecretKeyPlaceHolder": "Please input Unsplash Secret Key",
+  "searchUnsplashPlaceholder": "search for an image",
   "cancel": "Cancel",
   "save": "Save",
   "byeMenu": "Bye, Menu!",
