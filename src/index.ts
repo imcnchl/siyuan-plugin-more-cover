@@ -68,18 +68,6 @@ export default class MoreCoverPlugin extends Plugin {
     <path d="M10.667 12c0-0.736 0.597-1.333 1.333-1.333s1.333 0.597 1.333 1.333v0c0 0.736-0.597 1.333-1.333 1.333s-1.333-0.597-1.333-1.333v0zM10.735 20.235c-0.043-0.086-0.068-0.187-0.068-0.294 0-0.146 0.047-0.28 0.126-0.39l-0.001 0.002 3.337-4.64c0.115-0.161 0.301-0.265 0.511-0.265 0.189 0 0.358 0.084 0.473 0.216l0.001 0.001 0.287 0.329c0.116 0.132 0.285 0.215 0.473 0.215 0.197 0 0.374-0.091 0.489-0.234l0.001-0.001 0.813-1.009c0.116-0.144 0.293-0.236 0.491-0.236 0.235 0 0.44 0.129 0.548 0.321l0.002 0.003 3.031 5.36c0.054 0.094 0.086 0.207 0.086 0.328s-0.031 0.232-0.086 0.329l0.002-0.003c-0.109 0.196-0.315 0.326-0.55 0.328h-9.395c-0.249-0.001-0.463-0.146-0.566-0.355l-0.002-0.004z"></path>
 </symbol>`);
 
-        // // 添加插件按钮到顶栏
-        // this.addTopBar({
-        //     // this.addTopBar({
-        //     icon: "iconMoreCoverPlugin",
-        //     title: this.i18n.pluginName,
-        //     position: "right",
-        //     callback: () => {
-        //         console.log("-------callback");
-        //         this.showDialog();
-        //     }
-        // });
-
         const unsplashAccessKeyTextArea = document.createElement("textarea");
         this.setting = new Setting({
             confirmCallback: () => {
@@ -122,16 +110,14 @@ export default class MoreCoverPlugin extends Plugin {
     }
 
     onunload() {
-        console.log(this.i18n.byePlugin);
     }
 
-    private changeCover(event: Event, background: Background) {
-        console.log(event);
+    private changeCover(event: Event, background: Background, dialog: Dialog) {
         const target = event.target as HTMLElement;
         const imageId = target.dataset.imageId;
         const url = target.dataset.downloadUrl;
         let suffix = "png";
-        console.log("开始下载图片：", url);
+        console.log(`${this.i18n.pluginName}: 开始下载图片：`, url);
         fetch(url)
             .then(response => {
                 suffix = response.url.substring(response.url.indexOf("fm=") + 3);
@@ -157,13 +143,12 @@ export default class MoreCoverPlugin extends Plugin {
                             "title-img": `background-image:url(${succMap[fileName]})`
                         }
                     }, r => {
-                        console.log("设置封面成功", r);
+                        console.log(`${this.i18n.pluginName}: 设置封面成功`, r);
                         // 更新封面
-                        background.ial["title-img"] = `background-image:url("${r.data.succMap[Object.keys(r.data.succMap)[0]]}")`;
-                        console.log(background.imgElement);
-                        background.imgElement.src = URL.createObjectURL(blob);
-                        console.log(background.imgElement);
-                        // this.render(this.ial, protyle.block.rootID);
+                        background.ial["title-img"] = `background-image:url("${succMap[fileName]}")`;
+                        background.imgElement.src = `${succMap[fileName]}`;
+                        // 关闭 dialog
+                        dialog.destroy();
                     });
                 });
             });
@@ -193,7 +178,7 @@ export default class MoreCoverPlugin extends Plugin {
                 const url = "https://api.unsplash.com/search/photos?per_page=32&query=" + searchValue + "&client_id=" + this.data[STORAGE_NAME].unsplashAccessKey;
                 fetchGet(url, (response: UnsplashResp) => {
                     if (response.total <= 0) {
-                        console.log("找不到图片");
+                        console.log(`${this.i18n.pluginName}: 找不到图片`);
                         return;
                     }
                     const show = dialog.element.querySelector("#more-cover-search-unsplash-show");
@@ -220,7 +205,7 @@ export default class MoreCoverPlugin extends Plugin {
         target="_blank" rel="noopener noreferrer"
         style="display: inline; color: inherit; text-decoration: underline; user-select: none; cursor: pointer;">${value.user.name}</a>
 </div>`;
-                        div.querySelector("img").addEventListener(this.getEventName(), ev => this.changeCover(ev, background));
+                        div.querySelector("img").addEventListener(this.getEventName(), ev => this.changeCover(ev, background, dialog));
                         show.appendChild(div);
                     });
                 });
@@ -245,14 +230,11 @@ export default class MoreCoverPlugin extends Plugin {
     }
 
     private addChangeIconListener(event: CustomEvent) {
-        console.log(event);
         const background = event.detail.background as Background;
         // 获取“随机题头图” 按钮
         const buttons = background.element.querySelectorAll("span[data-type=\"random\"]");
         buttons.forEach((button, idx) => {
-            // console.log(`正在绑定随机题头图按钮 ${idx}：`, button);
             button.addEventListener(this.getEventName(), ev => {
-                console.log(`${this.i18n.pluginName}: 触发点击事件`);
                 this.configOrShowDialog(background);
                 ev.preventDefault();
                 ev.stopPropagation();
