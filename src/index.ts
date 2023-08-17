@@ -103,37 +103,6 @@ export default class MoreCoverPlugin extends Plugin {
             });
         });
 
-        this.addDock({
-            config: {
-                position: "LeftBottom",
-                size: {width: 200, height: 0},
-                icon: "iconSaving",
-                title: "Custom Dock",
-            },
-            data: {
-                text: "This is my custom dock"
-            },
-            type: DOCK_TYPE,
-            init() {
-                this.element.innerHTML = `<div class="fn__flex-1 fn__flex-column">
-    <div class="block__icons">
-        <div class="block__logo">
-            <svg><use xlink:href="#iconEmoji"></use></svg>
-            Custom Dock
-        </div>
-        <span class="fn__flex-1 fn__space"></span>
-        <span data-type="min" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Min ${adaptHotkey("⌘W")}"><svg><use xlink:href="#iconMin"></use></svg></span>
-    </div>
-    <div class="fn__flex-1 plugin-sample__custom-dock">
-        ${this.data.text}
-    </div>
-</div>`;
-            },
-            destroy() {
-                console.log("destroy dock:", DOCK_TYPE);
-            }
-        });
-
         const unsplashAccessKeyTextArea = document.createElement("textarea");
         const unsplashSecretKeyTextArea = document.createElement("textarea");
         this.setting = new Setting({
