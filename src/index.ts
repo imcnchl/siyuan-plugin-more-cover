@@ -17,8 +17,6 @@ import {
 import "./index.scss";
 
 const STORAGE_NAME = "more-cover-config";
-const TAB_TYPE = "custom_tab";
-const DOCK_TYPE = "dock_tab";
 
 export interface UnsplashUrls {
     raw: string;
@@ -88,21 +86,6 @@ export default class MoreCoverPlugin extends Plugin {
             }
         });
 
-        const statusIconTemp = document.createElement("template");
-        statusIconTemp.innerHTML = `<div class="toolbar__item b3-tooltips b3-tooltips__w" aria-label="Remove plugin-sample Data">
-    <svg>
-        <use xlink:href="#iconTrashcan"></use>
-    </svg>
-</div>`;
-        statusIconTemp.content.firstElementChild.addEventListener("click", () => {
-            confirm("⚠️", this.i18n.confirmRemove.replace("${name}", this.name), () => {
-                this.removeData(STORAGE_NAME).then(() => {
-                    this.data[STORAGE_NAME] = {readonlyText: "Readonly"};
-                    showMessage(`[${this.name}]: ${this.i18n.removedData}`);
-                });
-            });
-        });
-
         const unsplashAccessKeyTextArea = document.createElement("textarea");
         const unsplashSecretKeyTextArea = document.createElement("textarea");
         this.setting = new Setting({
@@ -132,19 +115,6 @@ export default class MoreCoverPlugin extends Plugin {
                 return unsplashSecretKeyTextArea;
             },
         });
-
-        // const btnaElement = document.createElement("button");
-        // btnaElement.className = "b3-button b3-button--outline fn__flex-center fn__size200";
-        // btnaElement.textContent = "Open";
-        // btnaElement.addEventListener("click", () => {
-        //     window.open("https://github.com/siyuan-note/plugin-sample");
-        // });
-        // this.setting.addItem({
-        //     title: "Open plugin url",
-        //     description: "Open plugin url in browser",
-        //     actionElement: btnaElement,
-        // });
-
     }
 
     onLayoutReady() {
@@ -154,50 +124,6 @@ export default class MoreCoverPlugin extends Plugin {
 
     onunload() {
         console.log(this.i18n.byePlugin);
-    }
-
-    /* 自定义设置
-    openSetting() {
-        const dialog = new Dialog({
-            title: this.name,
-            content: `<div class="b3-dialog__content"><textarea class="b3-text-field fn__block" placeholder="readonly text in the menu"></textarea></div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${this.i18n.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${this.i18n.save}</button>
-</div>`,
-            width: this.isMobile ? "92vw" : "520px",
-        });
-        const inputElement = dialog.element.querySelector("textarea");
-        inputElement.value = this.data[STORAGE_NAME].readonlyText;
-        const btnsElement = dialog.element.querySelectorAll(".b3-button");
-        dialog.bindInput(inputElement, () => {
-            (btnsElement[1] as HTMLButtonElement).click();
-        });
-        inputElement.focus();
-        btnsElement[0].addEventListener("click", () => {
-            dialog.destroy();
-        });
-        btnsElement[1].addEventListener("click", () => {
-            this.saveData(STORAGE_NAME, {readonlyText: inputElement.value});
-            dialog.destroy();
-        });
-    }
-    */
-
-    private eventBusLog({detail}: any) {
-        console.log(detail);
-    }
-
-    private blockIconEvent({detail}: any) {
-        const ids: string[] = [];
-        detail.blockElements.forEach((item: HTMLElement) => {
-            ids.push(item.getAttribute("data-node-id"));
-        });
-        detail.menu.addItem({
-            iconHTML: "",
-            type: "readonly",
-            label: "IDs<br>" + ids.join("<br>"),
-        });
     }
 
     private showDialog() {
