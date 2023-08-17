@@ -1,7 +1,7 @@
 {
   "topBarIcon": "MoreCover",
   "unsplashAccessKeyPlaceHolder": "Please input Unsplash Access Key",
-  "unsplashSecretKeyPlaceHolder": "Please input Unsplash Secret Key",
+  "unsplashAccessKeyNotNull": "Unsplash Access Key can not be null",
   "searchUnsplashPlaceholder": "search for an image",
   "cancel": "Cancel",
   "save": "Save",

@@ -1,4 +1,4 @@
-import {Dialog, fetchGet, getBackend, getFrontend, IWebSocketData, Plugin, Setting} from "siyuan";
+import {Dialog, fetchGet, getFrontend, IWebSocketData, Plugin, Setting, showMessage} from "siyuan";
 import "./index.scss";
 
 const STORAGE_NAME = "more-cover-config";
@@ -46,8 +46,8 @@ export default class MoreCoverPlugin extends Plugin {
 
     onload() {
         this.data[STORAGE_NAME] = {
+            openConfigByRandom: false,
             unsplashAccessKey: "",
-            unsplashSecretKey: ""
         };
 
         const frontEnd = getFrontend();
@@ -73,13 +73,29 @@ export default class MoreCoverPlugin extends Plugin {
         });
 
         const unsplashAccessKeyTextArea = document.createElement("textarea");
-        const unsplashSecretKeyTextArea = document.createElement("textarea");
         this.setting = new Setting({
             confirmCallback: () => {
+                const accessKey = unsplashAccessKeyTextArea.value;
+                console.log("保存配置", accessKey);
+                const random = this.data[STORAGE_NAME].openConfigByRandom;
+                console.log("------------------------1", random);
+
                 this.saveData(STORAGE_NAME, {
-                    unsplashAccessKey: unsplashAccessKeyTextArea.value,
-                    unsplashSecretKey: unsplashSecretKeyTextArea.value
+                    unsplashAccessKey: accessKey,
+                    openConfigByRandom: false
                 });
+                console.log("------------------------2");
+                console.log(accessKey);
+                console.log("------------------------3");
+                if (accessKey == "" || typeof accessKey == "undefined") {
+                    console.log("------------------------4");
+                    showMessage(this.i18n.unsplashAccessKeyNotNull);
+                }
+                if (random && accessKey != "") {
+                    console.log("------------------------5");
+
+                    this.showDialog();
+                }
             }
         });
         // 添加配置
@@ -92,20 +108,14 @@ export default class MoreCoverPlugin extends Plugin {
                 return unsplashAccessKeyTextArea;
             },
         });
-        this.setting.addItem({
-            title: "Unsplash Secret Key",
-            createActionElement: () => {
-                unsplashSecretKeyTextArea.className = "b3-text-field fn__block";
-                unsplashSecretKeyTextArea.placeholder = this.i18n.unsplashSecretKeyPlaceHolder;
-                unsplashSecretKeyTextArea.value = this.data[STORAGE_NAME].unsplashSecretKey;
-                return unsplashSecretKeyTextArea;
-            },
-        });
     }
 
     onLayoutReady() {
         this.loadData(STORAGE_NAME);
-        console.log(`frontend: ${getFrontend()}; backend: ${getBackend()}`);
+        console.log(`${this.i18n.topBarIcon} is loaded`);
+        this.eventBus.on("loaded-protyle", event => {
+            this.addChangeIconListener(event);
+        });
     }
 
     onunload() {
@@ -169,4 +179,41 @@ export default class MoreCoverPlugin extends Plugin {
 
     }
 
+    /**
+     * 配置或直接打开对话框
+     * @private
+     */
+    private configOrShowDialog() {
+        if (this.data[STORAGE_NAME].unsplashAccessKey) {
+            // 已有配置文件，直接打开对话框
+            this.showDialog();
+            return;
+        }
+        // 打开对话框
+        this.data[STORAGE_NAME].openConfigByRandom = true;
+        this.setting.open(this.i18n.topBarIcon);
+    }
+
+    private addChangeIconListener(event: CustomEvent<any>) {
+        const bg = event.detail.background.element as HTMLElement;
+        // 获取“随机题头图” 按钮
+        const buttons = bg.querySelectorAll("span[data-type=\"random\"]");
+        buttons.forEach((button, idx) => {
+            console.log(`正在绑定随机题头图按钮 ${idx}：`, button);
+            button.addEventListener(this.getEventName(), ev => {
+                console.log("触发点击事件", ev);
+                this.configOrShowDialog();
+                ev.preventDefault();
+                ev.stopPropagation();
+            });
+        });
+    }
+
+    private getEventName = () => {
+        if (navigator.userAgent.indexOf("iPhone") > -1) {
+            return "touchstart";
+        } else {
+            return "click";
+        }
+    };
 }
