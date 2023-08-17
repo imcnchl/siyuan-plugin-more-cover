@@ -1,5 +1,61 @@
 .plugin-more-cover {
+  &__config{
+    width: 100%;
+  }
   &__config fieldset {
     border: 1px solid gray;
+  }
+
+  &__config_line {
+    width: 100%;
+    display: flex;
+  }
+
+  &__config_line > label{
+
+  }
+
+  &__config_line > input{
+    //flex: 1;
+  }
+
+  &__switch {
+    width: 57px;
+    height: 28px;
+    position: relative;
+    border: 1px solid #dfdfdf;
+    background-color: #DCDFE6;
+    box-shadow: #dfdfdf 0 0 0 0 inset;
+    border-radius: 20px;
+    background-clip: content-box;
+    display: inline-block;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    user-select: none;
+    outline: none;
+  }
+  &__switch::before {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background-color: #FFFFFF;
+    border-radius: 50%;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+  }
+  &__switch_uncheck::before {
+    left: 2px;
+    transition: .3s;
+  }
+  &__switch_check {
+    background-color: #409EFF;
+    transition: .6s;
+  }
+  &__switch_check::before {
+    left: 30px;
+    transition: .3s;
   }
 }

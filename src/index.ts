@@ -127,8 +127,13 @@ export default class MoreCoverPlugin extends Plugin {
         const configHtml = `
 <div class="plugin-more-cover__config">
     <fieldset>
-        <legend>${this.getConfig().unsplash.name}</legend>
-        aaaaaaaaaaaaaaaaaaaa
+        <legend>${this.getConfig().unsplash.name} ${this.i18n.config}</legend>
+        <div class="plugin-more-cover__config_line">
+            <label>状态:&nbsp;</label><input type="checkbox" class="plugin-more-cover__switch plugin-more-cover__switch_uncheck" onclick="clickHandle(event)" />>        
+        </div>
+        <div class="plugin-more-cover__config_line">
+            <label>Access Key:&nbsp;</label><input type="text" value="${this.getConfig().unsplash.accessKey}">        
+        </div>
     </fieldset>
 </div>        
         `;

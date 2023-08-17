@@ -1,5 +1,6 @@
 {
   "pluginName": "随机题头图",
+  "config": "配置",
   "unsplashAccessKeyPlaceHolder": "请输入 Unsplash Access Key",
   "unsplashAccessKeyNotNull": "Unsplash Access Key 不能为空",
   "searchUnsplashPlaceholder": "查找一张图片",

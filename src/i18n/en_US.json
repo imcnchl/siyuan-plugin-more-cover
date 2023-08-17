@@ -1,5 +1,6 @@
 {
   "pluginName": "MoreCover",
+  "config": "Config",
   "unsplashAccessKeyPlaceHolder": "Please input Unsplash Access Key",
   "unsplashAccessKeyNotNull": "Unsplash Access Key can not be null",
   "searchUnsplashPlaceholder": "search for an image",
