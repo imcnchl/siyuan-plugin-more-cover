@@ -2,6 +2,11 @@
   "pluginName": "随机题头图",
   "config": "配置",
   "enable": "启用",
+  "common": "通用",
+  "search": "搜索",
+  "autoSearch": "自动搜索",
+  "placeholder": "查找一张图片",
+  "noEnableConfig": "请启用配置再重试",
   "unsplash": {
     "accessKeyNotNull": "Unsplash Access Key can't be null."
   },

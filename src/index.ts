@@ -1,4 +1,4 @@
-import {Dialog, fetchGet, fetchPost, getFrontend, IObject, IWebSocketData, Plugin, Setting, showMessage} from "siyuan";
+import {Dialog, fetchGet, fetchPost, getFrontend, IObject, IWebSocketData, Plugin, showMessage} from "siyuan";
 import "./index.scss";
 
 const STORAGE_NAME = "more-cover-config";
@@ -55,17 +55,20 @@ interface Config {
 
 class PixabayConfig implements Config {
     name = "Pixabay";
-    enable = true;
+    enable = false;
     key = "";
 }
 
 class UnsplashConfig implements Config {
     name = "Unsplash";
-    enable = true;
+    enable = false;
     accessKey = "";
 }
 
 class Configs {
+    common = {
+        autoSearch: true
+    };
     unsplash: UnsplashConfig = new UnsplashConfig();
     pixabay: PixabayConfig = new PixabayConfig();
 }
@@ -74,15 +77,8 @@ export default class MoreCoverPlugin extends Plugin {
 
     private isMobile: boolean;
 
-    name = this.i18n.pluginName;
-    displayName = this.i18n.pluginName;
-
     onload() {
-        // this.removeData(STORAGE_NAME);
         this.data[STORAGE_NAME] = new Configs();
-        console.log("onload", this.getConfig());
-        console.log("new config", new Configs());
-        console.log("new Configs().unsplash.name", new Configs().unsplash.name);
 
         const frontEnd = getFrontend();
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
@@ -94,42 +90,22 @@ export default class MoreCoverPlugin extends Plugin {
     <path d="M10.667 12c0-0.736 0.597-1.333 1.333-1.333s1.333 0.597 1.333 1.333v0c0 0.736-0.597 1.333-1.333 1.333s-1.333-0.597-1.333-1.333v0zM10.735 20.235c-0.043-0.086-0.068-0.187-0.068-0.294 0-0.146 0.047-0.28 0.126-0.39l-0.001 0.002 3.337-4.64c0.115-0.161 0.301-0.265 0.511-0.265 0.189 0 0.358 0.084 0.473 0.216l0.001 0.001 0.287 0.329c0.116 0.132 0.285 0.215 0.473 0.215 0.197 0 0.374-0.091 0.489-0.234l0.001-0.001 0.813-1.009c0.116-0.144 0.293-0.236 0.491-0.236 0.235 0 0.44 0.129 0.548 0.321l0.002 0.003 3.031 5.36c0.054 0.094 0.086 0.207 0.086 0.328s-0.031 0.232-0.086 0.329l0.002-0.003c-0.109 0.196-0.315 0.326-0.55 0.328h-9.395c-0.249-0.001-0.463-0.146-0.566-0.355l-0.002-0.004z"></path>
 </symbol>`);
 
-        const unsplashAccessKeyTextArea = document.createElement("textarea");
-        this.setting = new Setting({
-            confirmCallback: () => {
-                const accessKey = unsplashAccessKeyTextArea.value;
-                // 保存配置
-                const config = this.getConfig();
-                config.unsplash.accessKey = accessKey;
-                this.saveData(STORAGE_NAME, config);
-
-                if (accessKey == "" || typeof accessKey == "undefined") {
-                    // 没有设置 Unsplash
-                    showMessage(this.i18n.unsplashAccessKeyNotNull);
-                }
-            }
-        });
-        // 添加配置
-        // this.setting.addItem({
-        //     title: "Unsplash",
-        //     description: "这里是描述",
-        //     createActionElement: () => {
-        //         unsplashAccessKeyTextArea.className = "b3-text-field fn__block";
-        //         unsplashAccessKeyTextArea.placeholder = this.i18n.unsplashAccessKeyPlaceHolder;
-        //         console.log(this.getConfig());
-        //         unsplashAccessKeyTextArea.value = this.getConfig().unsplash.accessKey;
-        //         return unsplashAccessKeyTextArea;
-        //     },
-        // });
     }
 
     openSetting() {
         const config = this.getConfig();
-        console.log("openSetting", config);
         const configHtml = `
 <div class="plugin-more-cover__config">
+    <fieldset class="plugin-more-cover__config_common">
+        <legend>&nbsp;${this.i18n.common}&nbsp;</legend>
+        <div class="plugin-more-cover__config_line">
+            <label>${this.i18n.autoSearch}:&nbsp;</label>
+            <input type="checkbox" ${config.common.autoSearch ? "checked" : ""} 
+            class="plugin-more-cover__config_enable plugin-more-cover__switch ${config.common.autoSearch ? "plugin-more-cover__switch_check" : "plugin-more-cover__switch_uncheck"}"/>      
+        </div>
+    </fieldset>
     <fieldset class="plugin-more-cover__config_unsplash">
-        <legend>${config.unsplash.name} ${this.i18n.config}</legend>
+        <legend>&nbsp;${config.unsplash.name}&nbsp;</legend>
         <div class="plugin-more-cover__config_line">
             <label>${this.i18n.enable}:&nbsp;</label>
             <input type="checkbox" ${config.unsplash.enable ? "checked" : ""} 
@@ -141,7 +117,7 @@ export default class MoreCoverPlugin extends Plugin {
         </div>
     </fieldset>
     <fieldset class="plugin-more-cover__config_pixabay">
-        <legend>${config.pixabay.name} ${this.i18n.config}</legend>
+        <legend>&nbsp;${config.pixabay.name}&nbsp;</legend>
         <div class="plugin-more-cover__config_line">
             <label>${this.i18n.enable}:&nbsp;</label>
             <input type="checkbox" ${config.pixabay.enable ? "checked" : ""} 
@@ -200,7 +176,7 @@ export default class MoreCoverPlugin extends Plugin {
                 allSuccess = false;
                 showMessage(this.i18n.unsplash.accessKeyNotNull);
             }
-            if (config.unsplash.enable && !config.pixabay.key) {
+            if (config.pixabay.enable && !config.pixabay.key) {
                 allSuccess = false;
                 showMessage(this.i18n.pixabay.keyNotNull);
             }
@@ -273,13 +249,15 @@ export default class MoreCoverPlugin extends Plugin {
     }
 
     private showDialog(background: Background) {
+        const config = this.getConfig();
+
         const dialog = new Dialog({
             title: this.i18n.pluginName,
             content: `
 <div class="b3-dialog__content" style="background: white">
     <div>
     <input id="more-cover-search-unsplash-input" type="text" placeholder="${this.i18n.searchUnsplashPlaceholder}"/>
-    <button id="more-cover-search-unsplash-button">搜索</button>
+    ${config.common.autoSearch ? "<button id=\"more-cover-search-unsplash-button\">" + this.i18n.search + "</button>" : ""}
     </div>
     <div class="fn__hr"></div>
     <div id="more-cover-search-unsplash-show" style="display: flex; flex-wrap: wrap; align-content: flex-start; background: white; ">
@@ -293,7 +271,7 @@ export default class MoreCoverPlugin extends Plugin {
             // @ts-ignore
             const searchValue = dialog.element.querySelector("#more-cover-search-unsplash-input").value;
             if (searchValue) {
-                const url = "https://api.unsplash.com/search/photos?per_page=32&query=" + searchValue + "&client_id=" + this.getConfig().unsplash.accessKey;
+                const url = "https://api.unsplash.com/search/photos?per_page=32&query=" + searchValue + "&client_id=" + config.unsplash.accessKey;
                 fetchGet(url, (response: UnsplashResp) => {
                     if (response.total <= 0) {
                         console.log(`${this.i18n.pluginName}: 找不到图片`);
@@ -337,21 +315,31 @@ export default class MoreCoverPlugin extends Plugin {
      * @private
      */
     private configOrShowDialog(background: Background) {
-        console.log("configOrShowDialog", this.getConfig());
-        if (this.getConfig().unsplash.accessKey) {
+        const config = this.getConfig();
+        let anyEnable = false;
+        Object.keys(config).forEach(value => {
+            if (value == "common") {
+                return;
+            }
+            // @ts-ignore
+            const item = config[value] as Config;
+            anyEnable = anyEnable || item.enable;
+        });
+        if (anyEnable) {
             // 已有配置文件，直接打开对话框
             this.showDialog(background);
             return;
         }
-        // 打开对话框
-        this.setting.open(this.i18n.pluginName);
+        // 打开配置对话框
+        showMessage(this.i18n.noEnableConfig);
+        this.openSetting();
     }
 
     private addChangeIconListener(event: CustomEvent) {
         const background = event.detail.background as Background;
         // 获取“随机题头图” 按钮
         const buttons = background.element.querySelectorAll("span[data-type=\"random\"]");
-        buttons.forEach((button, idx) => {
+        buttons.forEach((button) => {
             button.addEventListener(this.getEventName(), ev => {
                 this.configOrShowDialog(background);
                 ev.preventDefault();
