@@ -50,18 +50,18 @@ interface Background {
 
 interface Config {
     name: string;
-    priority: number;
+    enable: boolean;
 }
 
 class PixabayConfig implements Config {
     name = "Pixabay";
-    priority = 1;
+    enable = true;
     key = "";
 }
 
 class UnsplashConfig implements Config {
     name = "Unsplash";
-    priority = 2;
+    enable = true;
     accessKey = "";
 }
 
@@ -124,22 +124,38 @@ export default class MoreCoverPlugin extends Plugin {
     }
 
     openSetting() {
+        const config = this.getConfig();
+        console.log("openSetting", config);
         const configHtml = `
 <div class="plugin-more-cover__config">
-    <fieldset>
-        <legend>${this.getConfig().unsplash.name} ${this.i18n.config}</legend>
+    <fieldset class="plugin-more-cover__config_unsplash">
+        <legend>${config.unsplash.name} ${this.i18n.config}</legend>
         <div class="plugin-more-cover__config_line">
-            <label>状态:&nbsp;</label><input type="checkbox" class="plugin-more-cover__switch plugin-more-cover__switch_uncheck" onclick="clickHandle(event)" />>        
+            <label>${this.i18n.enable}:&nbsp;</label>
+            <input type="checkbox" ${config.unsplash.enable ? "checked" : ""} 
+            class="plugin-more-cover__config_enable plugin-more-cover__switch ${config.unsplash.enable ? "plugin-more-cover__switch_check" : "plugin-more-cover__switch_uncheck"}"/>      
         </div>
         <div class="plugin-more-cover__config_line">
-            <label>Access Key:&nbsp;</label><input type="text" value="${this.getConfig().unsplash.accessKey}">        
+            <label>Access Key:&nbsp;</label>
+            <input class="plugin-more-cover__config_key" type="text" value="${config.unsplash.accessKey}" style="flex: 1">        
+        </div>
+    </fieldset>
+    <fieldset class="plugin-more-cover__config_pixabay">
+        <legend>${config.pixabay.name} ${this.i18n.config}</legend>
+        <div class="plugin-more-cover__config_line">
+            <label>${this.i18n.enable}:&nbsp;</label>
+            <input type="checkbox" ${config.pixabay.enable ? "checked" : ""} 
+            class="plugin-more-cover__config_enable plugin-more-cover__switch ${config.pixabay.enable ? "plugin-more-cover__switch_check" : "plugin-more-cover__switch_uncheck"}"/>      
+        </div>
+        <div class="plugin-more-cover__config_line">
+            <label>Key:&nbsp;</label><input class="plugin-more-cover__config_key" type="text" value="${config.pixabay.key}" style="flex: 1">        
         </div>
     </fieldset>
 </div>        
         `;
 
         const dialog = new Dialog({
-            title: this.name,
+            title: `${this.name}${this.i18n.config}`,
             content: `<div class="b3-dialog__content">${configHtml}</div>
 <div class="b3-dialog__action">
     <button class="b3-button b3-button--cancel">${this.i18n.cancel}</button><div class="fn__space"></div>
@@ -147,18 +163,51 @@ export default class MoreCoverPlugin extends Plugin {
 </div>`,
             width: this.isMobile ? "92vw" : "520px",
         });
-        const inputElement = dialog.element.querySelector("textarea");
-        inputElement.value = this.data[STORAGE_NAME].readonlyText;
-        const btnsElement = dialog.element.querySelectorAll(".b3-button");
-        dialog.bindInput(inputElement, () => {
-            (btnsElement[1] as HTMLButtonElement).click();
+        const allSwitch = dialog.element.querySelectorAll(".plugin-more-cover__switch");
+        allSwitch.forEach((value) => {
+            value.addEventListener("change", evt => {
+                const target = evt.target as HTMLElement;
+                // @ts-ignore
+                if (target.checked) {
+                    target.classList.add("plugin-more-cover__switch_check");
+                    target.classList.remove("plugin-more-cover__switch_uncheck");
+                } else {
+                    target.classList.add("plugin-more-cover__switch_uncheck");
+                    target.classList.remove("plugin-more-cover__switch_check");
+                }
+            });
         });
-        inputElement.focus();
-        btnsElement[0].addEventListener("click", () => {
+
+        const buttons = dialog.element.querySelectorAll(".b3-button");
+        buttons[0].addEventListener("click", () => {
             dialog.destroy();
         });
-        btnsElement[1].addEventListener("click", () => {
-            this.saveData(STORAGE_NAME, {readonlyText: inputElement.value});
+        buttons[1].addEventListener("click", () => {
+            const unsplash = dialog.element.querySelector(".plugin-more-cover__config_unsplash");
+            // @ts-ignore
+            config.unsplash.enable = unsplash.querySelector(".plugin-more-cover__config_enable").checked;
+            // @ts-ignore
+            config.unsplash.accessKey = unsplash.querySelector(".plugin-more-cover__config_key").value;
+
+            const pixabay = dialog.element.querySelector(".plugin-more-cover__config_pixabay");
+            // @ts-ignore
+            config.pixabay.enable = pixabay.querySelector(".plugin-more-cover__config_enable").checked;
+            // @ts-ignore
+            config.pixabay.key = pixabay.querySelector(".plugin-more-cover__config_key").value;
+
+            let allSuccess = true;
+            if (config.unsplash.enable && !config.unsplash.accessKey) {
+                allSuccess = false;
+                showMessage(this.i18n.unsplash.accessKeyNotNull);
+            }
+            if (config.unsplash.enable && !config.pixabay.key) {
+                allSuccess = false;
+                showMessage(this.i18n.pixabay.keyNotNull);
+            }
+            if (!allSuccess) {
+                return;
+            }
+            this.saveData(STORAGE_NAME, config);
             dialog.destroy();
         });
     }

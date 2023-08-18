@@ -1,6 +1,14 @@
 {
   "pluginName": "随机题头图",
   "config": "配置",
+  "enable": "启用",
+  "unsplash": {
+    "accessKeyNotNull": "Unsplash Access Key can't be null."
+  },
+  "pixabay": {
+    "keyNotNull": "Pixabay Key can't be null."
+  },
+
   "unsplashAccessKeyPlaceHolder": "请输入 Unsplash Access Key",
   "unsplashAccessKeyNotNull": "Unsplash Access Key 不能为空",
   "searchUnsplashPlaceholder": "查找一张图片",
