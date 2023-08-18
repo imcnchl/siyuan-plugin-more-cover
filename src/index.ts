@@ -1,4 +1,4 @@
-import {Dialog, fetchGet, fetchPost, getFrontend, IObject, IWebSocketData, Plugin, showMessage} from "siyuan";
+import {Dialog, fetchPost, getFrontend, IObject, Plugin, showMessage} from "siyuan";
 import "./index.scss";
 
 const STORAGE_NAME = "more-cover-config";
@@ -33,11 +33,58 @@ interface UnsplashImage {
     user: UnsplashUser
 }
 
-interface UnsplashResp extends IWebSocketData {
+interface UnsplashResp {
     total: number;
     total_pages: number;
     results: UnsplashImage[];
     errors: string[];
+}
+
+export interface PixabayHit {
+    id: number;
+    pageURL: string;
+    type: string;
+    tags: string;
+    previewURL: string;
+    previewWidth: number;
+    previewHeight: number;
+    webformatURL: string;
+    webformatWidth: number;
+    webformatHeight: number;
+    imageURL: string;
+    largeImageURL: string;
+    imageWidth: number;
+    imageHeight: number;
+    imageSize: number;
+    views: number;
+    downloads: number;
+    collections: number;
+    likes: number;
+    comments: number;
+    user_id: number;
+    user: string;
+    userImageURL: string;
+}
+
+export interface PixabayResp {
+    total: number;
+    totalHits: number;
+    hits: PixabayHit[];
+}
+
+interface ImageInfo {
+    id: string;
+    username: string;
+    thumbUrl: string;
+    downloadUrl: string;
+    htmlUrl: string;
+    description: string;
+}
+
+interface PageInfo {
+    total: number;
+    items: ImageInfo[];
+    errors: string[]
 }
 
 interface Background {
@@ -49,27 +96,40 @@ interface Background {
     transparentData: string
 }
 
-interface Config {
+class Config {
     /**
      * 需要和 Configs 的 key 名称一致
      */
     id: string;
     name: string;
     enable: boolean;
+    /**
+     * 分页查询图片的接口地址
+     */
+    pageApi: string;
+    /**
+     * 每页大小
+     */
+    pageSize: number;
 }
 
-class UnsplashConfig implements Config {
+class UnsplashConfig extends Config {
     id = "unsplash";
     name = "Unsplash";
     enable = false;
+    pageApi = "https://api.unsplash.com/search/photos?page={{pageNum}}&per_page={{pageSize}}&query={{searchValue}}&client_id={{accessKey}}";
+    pageSize = 30;
     accessKey = "";
 }
 
-class PixabayConfig implements Config {
+class PixabayConfig extends Config {
     id = "pixabay";
     name = "Pixabay";
     enable = false;
+    pageApi = "https://pixabay.com/api/?key={{key}}&q={{searchValue}}&lang={{language}}&page={{pageNum}}&per_page={{pageSize}}";
+    pageSize = 30;
     key = "";
+    language = "en";
 }
 
 class Configs {
@@ -84,7 +144,6 @@ class Configs {
 export default class MoreCoverPlugin extends Plugin {
 
     private isMobile: boolean;
-    private abortController = new AbortController();
 
     onload() {
         this.data[STORAGE_NAME] = new Configs();
@@ -298,6 +357,7 @@ export default class MoreCoverPlugin extends Plugin {
 
         // 绑定事件
         const searchInput = dialog.element.querySelector(".pmc-search-input") as HTMLInputElement;
+        const searchBtn = dialog.element.querySelector(".pmc-search-btn");
         dialog.element.querySelector(".pmc-search-select")?.addEventListener("change", evt => {
             const target = evt.target as HTMLSelectElement;
             const id = target.options[target.selectedIndex].value;
@@ -305,14 +365,13 @@ export default class MoreCoverPlugin extends Plugin {
             const name = (config[id] as Config).name;
             const placeholder = `${this.i18n.use} ${name} ${this.i18n.searchUnsplashPlaceholder}`;
             searchInput.setAttribute("placeholder", placeholder);
-            searchInput.value = "";
             searchInput.dispatchEvent(new InputEvent("input"));
+            searchBtn?.dispatchEvent(new Event("click"));
         });
 
         if (!config.common.autoSearch) {
-            dialog.element.querySelector(".pmc-search-btn").addEventListener("click", () => {
+            searchBtn.addEventListener("click", () => {
                 const searchValue = searchInput.value;
-                this.abortController.abort("点击搜索，取消上一次请求");
                 this.doSearch(dialog, background, searchValue);
             });
         } else {
@@ -324,7 +383,6 @@ export default class MoreCoverPlugin extends Plugin {
                 // 延时查询：0.5秒后没有输入则进行查询
                 setTimeout(() => {
                     if (curTime == lastTime) {
-                        this.abortController.abort("自动搜索，取消上一次请求");
                         this.doSearch(dialog, background, searchValue);
                     }
                 }, 500);
@@ -343,6 +401,28 @@ export default class MoreCoverPlugin extends Plugin {
         }
     }
 
+    private getActiveConfig(dialog: Dialog): Config {
+        const select = dialog.element.querySelector(".pmc-search-select") as HTMLSelectElement;
+        if (select) {
+            const id = select.options[select.selectedIndex].value;
+            const config = this.getConfig();
+            // @ts-ignore
+            return config[id] as Config;
+        }
+        return this.getEnableConfigs()[0];
+    }
+
+    private getPageApi(config: Config, searchValue: string, pageNum: number): string {
+        let api = config.pageApi;
+        Object.keys(config).forEach(value => {
+            // @ts-ignore
+            api = api.replace("{{" + value + "}}", config[value]);
+        });
+        api = api.replace("{{pageNum}}", String(pageNum))
+            .replace("{{searchValue}}", searchValue);
+        return api;
+    }
+
     /**
      * 进行搜索
      * @param dialog 对话框
@@ -351,46 +431,96 @@ export default class MoreCoverPlugin extends Plugin {
      * @private
      */
     private search(dialog: Dialog, background: Background, searchValue: string) {
-        const config = this.getConfig();
+        // 获取当前配置
+        const config = this.getActiveConfig(dialog);
+        const url = this.getPageApi(config, searchValue, 1);
+        console.log(url);
+        fetch(url)
+            .then(response => response.json())
+            .then(rs => {
+                let pageInfo;
+                switch (config.id) {
+                    case "unsplash":
+                        pageInfo = this.convertUnsplashResp(rs as UnsplashResp);
+                        break;
+                    case "pixabay":
+                        pageInfo = this.convertPixabayResp(rs as PixabayResp);
+                        break;
+                    default:
+                        throw new Error(`不支持 ${config.id} - ${config.name}`);
+                }
+                console.log("pageInfo", pageInfo);
+                this.showResult(dialog, background, pageInfo);
+            })
+            .catch(reason => {
+                showMessage(reason, 5000, "error");
+                console.log(reason);
+            });
+    }
 
-        const url = "https://api.unsplash.com/search/photos?per_page=32&query=" + searchValue + "&client_id=" + config.unsplash.accessKey;
-        fetchGet(url, (response: UnsplashResp) => {
-            if (response.errors?.length > 0) {
-                showMessage(response.errors.join("\n"), 5000, "error");
-                return;
-            }
-            if (response.total <= 0) {
-                console.log(`${this.i18n.pluginName}: 找不到图片`);
-                return;
-            }
-            const show = dialog.element.querySelector(".pmc-result");
-            show.innerHTML = "";
-            response.results.forEach(value => {
-                const div = document.createElement("div");
-                div.style.width = "20%";
-                div.style.padding = "3px";
-                div.style.boxSizing = "border-box";
-                div.style.textAlign = "center";
-                div.innerHTML = `
-<div style="user-select: none; transition: background 20ms ease-in 0s; cursor: pointer;">
+    private showResult(dialog: Dialog, background: Background, pageInfo: PageInfo) {
+        if (pageInfo.errors?.length > 0) {
+            showMessage(pageInfo.errors.join("\n"), 5000, "error");
+            return;
+        }
+        if (pageInfo.total <= 0) {
+            console.log(`${this.i18n.pluginName}: 找不到图片`);
+            return;
+        }
+        const result = dialog.element.querySelector(".pmc-result");
+        result.innerHTML = "";
+        pageInfo.items.forEach(value => {
+            const div = document.createElement("div");
+            div.classList.add("pmc-result-item");
+            div.innerHTML = `
+<div class="pmc-result-item-img">
     <div style="width: 100%; height: 100%;">
-    <img src="${value.urls.thumb}"
-            referrerpolicy="same-origin"
+    <img src="${value.thumbUrl}"
             data-image-id="${value.id}"
-            data-download-url="${value.links.download}"
-            style="display: block; object-fit: cover; border-radius: 3px; width: 100%; height: 64px; object-position: center 0;" alt="${value.alt_description}"/>
+            data-download-url="${value.downloadUrl}"
+            alt="${value.description}"/>
     </div>
 </div>
-<div
-    style="font-size: 12px; line-height: 16px; color: rgba(55, 53, 47, 0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; margin-bottom: 4px;">
-    by <a href="${value.links.html}"
-        target="_blank" rel="noopener noreferrer"
-        style="display: inline; color: inherit; text-decoration: underline; user-select: none; cursor: pointer;">${value.user.name}</a>
+<div class="pmc-result-item-person">
+    by <a href="${value.htmlUrl}" title="${value.username}" target="_blank">${value.username}</a>
 </div>`;
-                div.querySelector("img").addEventListener(this.getEventName(), ev => this.changeCover(ev, background, dialog));
-                show.appendChild(div);
-            });
+            div.querySelector("img").addEventListener(this.getEventName(), ev => this.changeCover(ev, background, dialog));
+            result.appendChild(div);
         });
+    }
+
+    private convertUnsplashResp(response: UnsplashResp): PageInfo {
+        return {
+            total: response.total,
+            errors: response.errors,
+            items: response.results?.map(value => {
+                return {
+                    id: value.id,
+                    username: value.user.name,
+                    thumbUrl: value.urls.thumb,
+                    downloadUrl: value.links.download,
+                    htmlUrl: value.links.html,
+                    description: value.alt_description
+                };
+            })
+        };
+    }
+
+    private convertPixabayResp(response: PixabayResp): PageInfo {
+        return {
+            total: response.total,
+            errors: [],
+            items: response.hits?.map(value => {
+                return {
+                    id: String(value.id),
+                    username: value.user,
+                    thumbUrl: value.previewURL,
+                    downloadUrl: value.imageURL || value.largeImageURL,
+                    htmlUrl: value.pageURL,
+                    description: value.tags
+                };
+            })
+        };
     }
 
     private random(dialog: Dialog, background: Background) {

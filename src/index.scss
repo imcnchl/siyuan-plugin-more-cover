@@ -96,5 +96,46 @@
     flex-wrap: wrap;
     align-content: flex-start;
     background: white;
+
+    &-item {
+      width: 20%;
+      padding: 3px;
+      box-sizing: border-box;
+      text-align: center;
+
+      &-img {
+        user-select: none;
+        transition: background 20ms ease-in 0s;
+        cursor: pointer;
+
+        & img {
+          display: block;
+          object-fit: cover;
+          border-radius: 3px;
+          width: 100%;
+          height: 64px;
+          object-position: center 0;
+        }
+      }
+
+      &-person {
+        font-size: 12px;
+        line-height: 16px;
+        color: rgba(55, 53, 47, 0.5);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+        margin-bottom: 4px;
+
+        & a {
+          display: inline;
+          color: inherit;
+          text-decoration: underline;
+          user-select: none;
+          cursor: pointer;
+        }
+      }
+    }
   }
 }
