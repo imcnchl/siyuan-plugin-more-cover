@@ -350,6 +350,7 @@ export default class MoreCoverPlugin extends Plugin {
     </div>
     <div class="fn__hr"></div>
     <div class="pmc-result"></div>
+    <div class="pmc-page"></div>
 </div>`,
             width: this.isMobile ? "92vw" : "600px",
             height: "540px",
@@ -372,7 +373,8 @@ export default class MoreCoverPlugin extends Plugin {
         if (!config.common.autoSearch) {
             searchBtn.addEventListener("click", () => {
                 const searchValue = searchInput.value;
-                this.doSearch(dialog, background, searchValue);
+                const pageNum = this.currentPage(dialog);
+                this.doSearch(dialog, background, searchValue, pageNum);
             });
         } else {
             let lastTime = 0;
@@ -383,19 +385,25 @@ export default class MoreCoverPlugin extends Plugin {
                 // 延时查询：0.5秒后没有输入则进行查询
                 setTimeout(() => {
                     if (curTime == lastTime) {
-                        this.doSearch(dialog, background, searchValue);
+                        const pageNum = this.currentPage(dialog);
+                        this.doSearch(dialog, background, searchValue, pageNum);
                     }
                 }, 500);
             });
         }
 
         // 打开对话框时自动查询
-        this.doSearch(dialog, background, "");
+        this.doSearch(dialog, background);
     }
 
-    private doSearch(dialog: Dialog, background: Background, searchValue: string) {
+    private currentPage(dialog: Dialog) {
+        const curPage = dialog.element.querySelector(".pmc-page .pmc-page-cur") as HTMLDivElement;
+        return curPage ? parseInt(curPage.innerHTML) : 1;
+    }
+
+    private doSearch(dialog: Dialog, background: Background, searchValue?: string, pageNum?: number) {
         if (searchValue) {
-            this.search(dialog, background, searchValue);
+            this.search(dialog, background, searchValue, pageNum);
         } else {
             this.random(dialog, background);
         }
@@ -428,12 +436,13 @@ export default class MoreCoverPlugin extends Plugin {
      * @param dialog 对话框
      * @param background 封面相关的数据
      * @param searchValue 搜索关键字
+     * @param pageNum
      * @private
      */
-    private search(dialog: Dialog, background: Background, searchValue: string) {
+    private search(dialog: Dialog, background: Background, searchValue: string, pageNum?: number) {
         // 获取当前配置
         const config = this.getActiveConfig(dialog);
-        const url = this.getPageApi(config, searchValue, 1);
+        const url = this.getPageApi(config, searchValue, pageNum);
         console.log(url);
         fetch(url)
             .then(response => response.json())
@@ -450,7 +459,7 @@ export default class MoreCoverPlugin extends Plugin {
                         throw new Error(`不支持 ${config.id} - ${config.name}`);
                 }
                 console.log("pageInfo", pageInfo);
-                this.showResult(dialog, background, pageInfo);
+                this.showResult(dialog, background, config, pageInfo, pageNum);
             })
             .catch(reason => {
                 showMessage(reason, 5000, "error");
@@ -458,7 +467,7 @@ export default class MoreCoverPlugin extends Plugin {
             });
     }
 
-    private showResult(dialog: Dialog, background: Background, pageInfo: PageInfo) {
+    private showResult(dialog: Dialog, background: Background, config: Config, pageInfo: PageInfo, curPage: number) {
         if (pageInfo.errors?.length > 0) {
             showMessage(pageInfo.errors.join("\n"), 5000, "error");
             return;
@@ -487,6 +496,33 @@ export default class MoreCoverPlugin extends Plugin {
             div.querySelector("img").addEventListener(this.getEventName(), ev => this.changeCover(ev, background, dialog));
             result.appendChild(div);
         });
+
+        if (pageInfo.total) {
+            console.log("----------- process page");
+            // 进行分页
+            const pageElement = dialog.element.querySelector(".pmc-page");
+            let pageCount = Math.floor(pageInfo.total / config.pageSize);
+            if (pageInfo.total % config.pageSize != 0) {
+                pageCount += 1;
+            }
+            // 限制一个展示 10 个按钮
+            const pageShow = 10;
+            let startPage = Math.max(curPage - Math.floor(pageShow / 2), 1);
+            const endPage = Math.min(startPage + pageShow - 1, pageCount);
+            if (endPage - startPage < (pageShow - 1)) {
+                startPage = Math.max(endPage - pageShow + 1, 1);
+            }
+            console.log("startPage=", startPage, "endPage=", endPage);
+            for (let page = startPage; page <= endPage; page++) {
+                const div = document.createElement("div");
+                if (curPage == page) {
+                    div.classList.add("pmc-page-cur");
+                }
+                div.innerHTML = String(page);
+                pageElement.append(div);
+            }
+
+        }
     }
 
     private convertUnsplashResp(response: UnsplashResp): PageInfo {
