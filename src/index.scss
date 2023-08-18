@@ -4,15 +4,21 @@
   }
   &__config fieldset {
     border: 1px solid gray;
+    margin-top: 10px;
+  }
+  &__config fieldset:first-child {
+    margin-top: 0;
   }
 
   &__config_line {
     width: 100%;
     display: flex;
+    padding-top: 6px;
   }
 
   &__config_line > label{
-
+    width: 85px;
+    text-align: right;
   }
 
   &__config_line > input{
@@ -20,8 +26,8 @@
   }
 
   &__switch {
-    width: 57px;
-    height: 28px;
+    width: 37px;
+    height: 18px;
     position: relative;
     border: 1px solid #dfdfdf;
     background-color: #DCDFE6;
@@ -38,8 +44,8 @@
   &__switch::before {
     content: '';
     position: absolute;
-    width: 22px;
-    height: 22px;
+    width: 15px;
+    height: 15px;
     background-color: #FFFFFF;
     border-radius: 50%;
     top: 0;
@@ -55,7 +61,7 @@
     transition: .6s;
   }
   &__switch_check::before {
-    left: 30px;
+    left: 19px;
     transition: .3s;
   }
 }
