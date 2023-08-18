@@ -7,6 +7,7 @@
   "autoSearch": "Auto Search",
   "placeholder": "search for an image",
   "noEnableConfig": "Please enable the configuration and try again",
+  "use": "Use",
   "unsplash": {
     "accessKeyNotNull": "Unsplash Access Key can't be null."
   },

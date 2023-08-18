@@ -7,6 +7,7 @@
   "autoSearch": "自动搜索",
   "placeholder": "查找一张图片",
   "noEnableConfig": "请启用配置再重试",
+  "use": "使用",
   "unsplash": {
     "accessKeyNotNull": "Unsplash Access Key can't be null."
   },
