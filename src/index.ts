@@ -37,6 +37,7 @@ interface UnsplashResp extends IWebSocketData {
     total: number;
     total_pages: number;
     results: UnsplashImage[];
+    errors: string[];
 }
 
 interface Background {
@@ -49,25 +50,32 @@ interface Background {
 }
 
 interface Config {
+    /**
+     * 需要和 Configs 的 key 名称一致
+     */
+    id: string;
     name: string;
     enable: boolean;
 }
 
-class PixabayConfig implements Config {
-    name = "Pixabay";
-    enable = false;
-    key = "";
-}
-
 class UnsplashConfig implements Config {
+    id = "unsplash";
     name = "Unsplash";
     enable = false;
     accessKey = "";
 }
 
+class PixabayConfig implements Config {
+    id = "pixabay";
+    name = "Pixabay";
+    enable = false;
+    key = "";
+}
+
 class Configs {
     common = {
-        autoSearch: true
+        autoSearch: false,
+        selectedId: ""
     };
     unsplash: UnsplashConfig = new UnsplashConfig();
     pixabay: PixabayConfig = new PixabayConfig();
@@ -76,6 +84,7 @@ class Configs {
 export default class MoreCoverPlugin extends Plugin {
 
     private isMobile: boolean;
+    private abortController = new AbortController();
 
     onload() {
         this.data[STORAGE_NAME] = new Configs();
@@ -95,43 +104,43 @@ export default class MoreCoverPlugin extends Plugin {
     openSetting() {
         const config = this.getConfig();
         const configHtml = `
-<div class="plugin-more-cover__config">
-    <fieldset class="plugin-more-cover__config_common">
+<div class="pmc-config">
+    <fieldset class="pmc-config_common">
         <legend>&nbsp;${this.i18n.common}&nbsp;</legend>
-        <div class="plugin-more-cover__config_line">
+        <div class="pmc-config_line">
             <label>${this.i18n.autoSearch}:&nbsp;</label>
             <input type="checkbox" ${config.common.autoSearch ? "checked" : ""} 
-            class="plugin-more-cover__config_enable plugin-more-cover__switch ${config.common.autoSearch ? "plugin-more-cover__switch_check" : "plugin-more-cover__switch_uncheck"}"/>      
+            class="pmc-config_enable pmc-switch ${config.common.autoSearch ? "pmc-switch_check" : "pmc-switch_uncheck"}"/>      
         </div>
     </fieldset>
-    <fieldset class="plugin-more-cover__config_unsplash">
+    <fieldset class="pmc-config_unsplash">
         <legend>&nbsp;${config.unsplash.name}&nbsp;</legend>
-        <div class="plugin-more-cover__config_line">
+        <div class="pmc-config_line">
             <label>${this.i18n.enable}:&nbsp;</label>
             <input type="checkbox" ${config.unsplash.enable ? "checked" : ""} 
-            class="plugin-more-cover__config_enable plugin-more-cover__switch ${config.unsplash.enable ? "plugin-more-cover__switch_check" : "plugin-more-cover__switch_uncheck"}"/>      
+            class="pmc-config_enable pmc-switch ${config.unsplash.enable ? "pmc-switch_check" : "pmc-switch_uncheck"}"/>      
         </div>
-        <div class="plugin-more-cover__config_line">
+        <div class="pmc-config_line">
             <label>Access Key:&nbsp;</label>
-            <input class="plugin-more-cover__config_key" type="text" value="${config.unsplash.accessKey}" style="flex: 1">        
+            <input class="pmc-config_key" type="text" value="${config.unsplash.accessKey}" style="flex: 1">        
         </div>
     </fieldset>
-    <fieldset class="plugin-more-cover__config_pixabay">
+    <fieldset class="pmc-config_pixabay">
         <legend>&nbsp;${config.pixabay.name}&nbsp;</legend>
-        <div class="plugin-more-cover__config_line">
+        <div class="pmc-config_line">
             <label>${this.i18n.enable}:&nbsp;</label>
             <input type="checkbox" ${config.pixabay.enable ? "checked" : ""} 
-            class="plugin-more-cover__config_enable plugin-more-cover__switch ${config.pixabay.enable ? "plugin-more-cover__switch_check" : "plugin-more-cover__switch_uncheck"}"/>      
+            class="pmc-config_enable pmc-switch ${config.pixabay.enable ? "pmc-switch_check" : "pmc-switch_uncheck"}"/>      
         </div>
-        <div class="plugin-more-cover__config_line">
-            <label>Key:&nbsp;</label><input class="plugin-more-cover__config_key" type="text" value="${config.pixabay.key}" style="flex: 1">        
+        <div class="pmc-config_line">
+            <label>Key:&nbsp;</label><input class="pmc-config_key" type="text" value="${config.pixabay.key}" style="flex: 1">        
         </div>
     </fieldset>
 </div>        
         `;
 
         const dialog = new Dialog({
-            title: `${this.name}${this.i18n.config}`,
+            title: `${this.displayName}${this.i18n.config}`,
             content: `<div class="b3-dialog__content">${configHtml}</div>
 <div class="b3-dialog__action">
     <button class="b3-button b3-button--cancel">${this.i18n.cancel}</button><div class="fn__space"></div>
@@ -139,17 +148,17 @@ export default class MoreCoverPlugin extends Plugin {
 </div>`,
             width: this.isMobile ? "92vw" : "520px",
         });
-        const allSwitch = dialog.element.querySelectorAll(".plugin-more-cover__switch");
+        const allSwitch = dialog.element.querySelectorAll(".pmc-switch");
         allSwitch.forEach((value) => {
             value.addEventListener("change", evt => {
                 const target = evt.target as HTMLElement;
                 // @ts-ignore
                 if (target.checked) {
-                    target.classList.add("plugin-more-cover__switch_check");
-                    target.classList.remove("plugin-more-cover__switch_uncheck");
+                    target.classList.add("pmc-switch_check");
+                    target.classList.remove("pmc-switch_uncheck");
                 } else {
-                    target.classList.add("plugin-more-cover__switch_uncheck");
-                    target.classList.remove("plugin-more-cover__switch_check");
+                    target.classList.add("pmc-switch_uncheck");
+                    target.classList.remove("pmc-switch_check");
                 }
             });
         });
@@ -159,17 +168,21 @@ export default class MoreCoverPlugin extends Plugin {
             dialog.destroy();
         });
         buttons[1].addEventListener("click", () => {
-            const unsplash = dialog.element.querySelector(".plugin-more-cover__config_unsplash");
+            const common = dialog.element.querySelector(".pmc-config_common");
             // @ts-ignore
-            config.unsplash.enable = unsplash.querySelector(".plugin-more-cover__config_enable").checked;
-            // @ts-ignore
-            config.unsplash.accessKey = unsplash.querySelector(".plugin-more-cover__config_key").value;
+            config.common.autoSearch = common.querySelector(".pmc-config_enable").checked;
 
-            const pixabay = dialog.element.querySelector(".plugin-more-cover__config_pixabay");
+            const unsplash = dialog.element.querySelector(".pmc-config_unsplash");
             // @ts-ignore
-            config.pixabay.enable = pixabay.querySelector(".plugin-more-cover__config_enable").checked;
+            config.unsplash.enable = unsplash.querySelector(".pmc-config_enable").checked;
             // @ts-ignore
-            config.pixabay.key = pixabay.querySelector(".plugin-more-cover__config_key").value;
+            config.unsplash.accessKey = unsplash.querySelector(".pmc-config_key").value;
+
+            const pixabay = dialog.element.querySelector(".pmc-config_pixabay");
+            // @ts-ignore
+            config.pixabay.enable = pixabay.querySelector(".pmc-config_enable").checked;
+            // @ts-ignore
+            config.pixabay.key = pixabay.querySelector(".pmc-config_key").value;
 
             let allSuccess = true;
             if (config.unsplash.enable && !config.unsplash.accessKey) {
@@ -248,45 +261,118 @@ export default class MoreCoverPlugin extends Plugin {
             });
     }
 
-    private showDialog(background: Background) {
+    private showDialog(background: Background, enableConfigs: Config[]) {
         const config = this.getConfig();
+
+        console.log(enableConfigs);
+        let selectedId = enableConfigs[0].id;
+        let selectHtml = "";
+        if (enableConfigs.length > 1) {
+            selectHtml += "<select class=\"pmc-search-select\">";
+            enableConfigs.forEach((c) => {
+                if (c.id == config.common.selectedId) {
+                    selectedId = c.id;
+                }
+                selectHtml += `<option value="${c.id}" ${c.id == config.common.selectedId ? "selected" : ""}>${c.name}</option>`;
+            });
+            selectHtml += "</select>";
+        }
+        // @ts-ignore
+        const selectedName = config[selectedId].name;
 
         const dialog = new Dialog({
             title: this.i18n.pluginName,
             content: `
-<div class="b3-dialog__content" style="background: white">
-    <div>
-    <input id="more-cover-search-unsplash-input" type="text" placeholder="${this.i18n.searchUnsplashPlaceholder}"/>
-    ${config.common.autoSearch ? "<button id=\"more-cover-search-unsplash-button\">" + this.i18n.search + "</button>" : ""}
+<div class="b3-dialog__content" style="background: white; padding: 10px">
+    <div class="pmc-search">
+        ${selectHtml}    
+        <input class="pmc-search-input" type="text" placeholder="${this.i18n.use} ${selectedName} ${this.i18n.searchUnsplashPlaceholder}"/>
+        ${config.common.autoSearch ? "" : "<button class=\"pmc-search-btn\">" + this.i18n.search + "</button>"}
     </div>
     <div class="fn__hr"></div>
-    <div id="more-cover-search-unsplash-show" style="display: flex; flex-wrap: wrap; align-content: flex-start; background: white; ">
-    </div>
+    <div class="pmc-result"></div>
 </div>`,
             width: this.isMobile ? "92vw" : "600px",
             height: "540px",
         });
 
-        document.getElementById("more-cover-search-unsplash-button").addEventListener("click", () => {
+        // 绑定事件
+        const searchInput = dialog.element.querySelector(".pmc-search-input") as HTMLInputElement;
+        dialog.element.querySelector(".pmc-search-select")?.addEventListener("change", evt => {
+            const target = evt.target as HTMLSelectElement;
+            const id = target.options[target.selectedIndex].value;
             // @ts-ignore
-            const searchValue = dialog.element.querySelector("#more-cover-search-unsplash-input").value;
-            if (searchValue) {
-                const url = "https://api.unsplash.com/search/photos?per_page=32&query=" + searchValue + "&client_id=" + config.unsplash.accessKey;
-                fetchGet(url, (response: UnsplashResp) => {
-                    if (response.total <= 0) {
-                        console.log(`${this.i18n.pluginName}: 找不到图片`);
-                        return;
+            const name = (config[id] as Config).name;
+            const placeholder = `${this.i18n.use} ${name} ${this.i18n.searchUnsplashPlaceholder}`;
+            searchInput.setAttribute("placeholder", placeholder);
+            searchInput.value = "";
+            searchInput.dispatchEvent(new InputEvent("input"));
+        });
+
+        if (!config.common.autoSearch) {
+            dialog.element.querySelector(".pmc-search-btn").addEventListener("click", () => {
+                const searchValue = searchInput.value;
+                this.abortController.abort("点击搜索，取消上一次请求");
+                this.doSearch(dialog, background, searchValue);
+            });
+        } else {
+            let lastTime = 0;
+            searchInput.addEventListener("input", evt => {
+                const searchValue = (evt.target as HTMLInputElement).value;
+                const curTime = new Date().getTime();
+                lastTime = curTime;
+                // 延时查询：0.5秒后没有输入则进行查询
+                setTimeout(() => {
+                    if (curTime == lastTime) {
+                        this.abortController.abort("自动搜索，取消上一次请求");
+                        this.doSearch(dialog, background, searchValue);
                     }
-                    const show = dialog.element.querySelector("#more-cover-search-unsplash-show");
-                    response.results.forEach(value => {
-                        const div = document.createElement("div");
-                        div.style.width = "20%";
-                        div.style.padding = "3px";
-                        div.style.boxSizing = "border-box";
-                        div.style.textAlign = "center";
-                        div.innerHTML = `
-<div role="button" tabindex="0"
-    style="user-select: none; transition: background 20ms ease-in 0s; cursor: pointer;">
+                }, 500);
+            });
+        }
+
+        // 打开对话框时自动查询
+        this.doSearch(dialog, background, "");
+    }
+
+    private doSearch(dialog: Dialog, background: Background, searchValue: string) {
+        if (searchValue) {
+            this.search(dialog, background, searchValue);
+        } else {
+            this.random(dialog, background);
+        }
+    }
+
+    /**
+     * 进行搜索
+     * @param dialog 对话框
+     * @param background 封面相关的数据
+     * @param searchValue 搜索关键字
+     * @private
+     */
+    private search(dialog: Dialog, background: Background, searchValue: string) {
+        const config = this.getConfig();
+
+        const url = "https://api.unsplash.com/search/photos?per_page=32&query=" + searchValue + "&client_id=" + config.unsplash.accessKey;
+        fetchGet(url, (response: UnsplashResp) => {
+            if (response.errors?.length > 0) {
+                showMessage(response.errors.join("\n"), 5000, "error");
+                return;
+            }
+            if (response.total <= 0) {
+                console.log(`${this.i18n.pluginName}: 找不到图片`);
+                return;
+            }
+            const show = dialog.element.querySelector(".pmc-result");
+            show.innerHTML = "";
+            response.results.forEach(value => {
+                const div = document.createElement("div");
+                div.style.width = "20%";
+                div.style.padding = "3px";
+                div.style.boxSizing = "border-box";
+                div.style.textAlign = "center";
+                div.innerHTML = `
+<div style="user-select: none; transition: background 20ms ease-in 0s; cursor: pointer;">
     <div style="width: 100%; height: 100%;">
     <img src="${value.urls.thumb}"
             referrerpolicy="same-origin"
@@ -301,13 +387,30 @@ export default class MoreCoverPlugin extends Plugin {
         target="_blank" rel="noopener noreferrer"
         style="display: inline; color: inherit; text-decoration: underline; user-select: none; cursor: pointer;">${value.user.name}</a>
 </div>`;
-                        div.querySelector("img").addEventListener(this.getEventName(), ev => this.changeCover(ev, background, dialog));
-                        show.appendChild(div);
-                    });
-                });
+                div.querySelector("img").addEventListener(this.getEventName(), ev => this.changeCover(ev, background, dialog));
+                show.appendChild(div);
+            });
+        });
+    }
+
+    private random(dialog: Dialog, background: Background) {
+        console.log("-------- random ---------", dialog, background);
+    }
+
+    private getEnableConfigs(): Config[] {
+        const config = this.getConfig();
+        const list: Config[] = [];
+        Object.keys(config).forEach(value => {
+            if (value == "common") {
+                return;
+            }
+            // @ts-ignore
+            const item = config[value] as Config;
+            if (item.enable) {
+                list.push(item);
             }
         });
-
+        return list;
     }
 
     /**
@@ -315,19 +418,11 @@ export default class MoreCoverPlugin extends Plugin {
      * @private
      */
     private configOrShowDialog(background: Background) {
-        const config = this.getConfig();
-        let anyEnable = false;
-        Object.keys(config).forEach(value => {
-            if (value == "common") {
-                return;
-            }
-            // @ts-ignore
-            const item = config[value] as Config;
-            anyEnable = anyEnable || item.enable;
-        });
+        const enableConfigs = this.getEnableConfigs();
+        const anyEnable = enableConfigs.length > 0;
         if (anyEnable) {
             // 已有配置文件，直接打开对话框
-            this.showDialog(background);
+            this.showDialog(background, enableConfigs);
             return;
         }
         // 打开配置对话框
