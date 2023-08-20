@@ -141,6 +141,51 @@
 
   // 分页
   &-page {
+    display: flex;
+    text-align: center;
 
+    &-hide {
+      display: none !important;
+    }
+
+    &-padding {
+      flex: 1;
+    }
+
+    &-item {
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      transition: color .3s;
+      cursor: pointer;
+      border-radius: 6px;
+      display: inline-block;
+      margin-inline-end: 5px;
+      line-height: 30px;
+      text-align: center;
+      vertical-align: middle;
+      list-style: none;
+      background-color: transparent;
+      border: 1px solid transparent;
+      outline: 0;
+      user-select: none;
+    }
+
+    &-item:hover {
+      transition: all 0.2s;
+      background-color: rgba(0, 0, 0, 0.06);
+    }
+
+    &-item:first-child {
+      margin-left: 0;
+    }
+
+    &-cur {
+      pointer-events: none;
+      border: 1px solid #1677ff;
+      background-color: #ffffff;
+      font-weight: 600;
+      color: #1677ff;
+    }
   }
 }

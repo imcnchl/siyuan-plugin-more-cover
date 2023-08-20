@@ -497,14 +497,17 @@ export default class MoreCoverPlugin extends Plugin {
             result.appendChild(div);
         });
 
+        const pageElement = dialog.element.querySelector(".pmc-page") as HTMLDivElement;
+        pageElement.innerHTML = "";
         if (pageInfo.total) {
+            pageElement.classList.remove("hide");
             console.log("----------- process page");
             // 进行分页
-            const pageElement = dialog.element.querySelector(".pmc-page");
             let pageCount = Math.floor(pageInfo.total / config.pageSize);
             if (pageInfo.total % config.pageSize != 0) {
                 pageCount += 1;
             }
+            console.log("total=", pageInfo.total, "pageCount=", pageCount);
             // 限制一个展示 10 个按钮
             const pageShow = 10;
             let startPage = Math.max(curPage - Math.floor(pageShow / 2), 1);
@@ -513,16 +516,49 @@ export default class MoreCoverPlugin extends Plugin {
                 startPage = Math.max(endPage - pageShow + 1, 1);
             }
             console.log("startPage=", startPage, "endPage=", endPage);
+
+            let padding = document.createElement("div");
+            padding.classList.add("pmc-page-padding");
+            pageElement.append(padding);
+
             for (let page = startPage; page <= endPage; page++) {
-                const div = document.createElement("div");
+                const btn = document.createElement("button");
+                btn.classList.add("pmc-page-item");
+                btn.type = "button";
+                btn.value = String(page);
+                btn.innerText = String(page);
                 if (curPage == page) {
-                    div.classList.add("pmc-page-cur");
+                    btn.classList.add("pmc-page-cur");
+                    btn.disabled = true;
                 }
-                div.innerHTML = String(page);
-                pageElement.append(div);
+                pageElement.append(btn);
+                btn.addEventListener("click", evt => {
+                    this.clickPageItem(dialog, background, evt);
+                });
             }
 
+            padding = document.createElement("div");
+            padding.classList.add("pmc-page-padding");
+            pageElement.append(padding);
+
+            if (pageCount > 1) {
+                console.log("---------------pagecount");
+                pageElement.classList.add("pmc-page-hide");
+            }
+        } else {
+            pageElement.classList.add("pmc-page-hide");
         }
+    }
+
+    private clickPageItem(dialog: Dialog, background: Background, evt: MouseEvent) {
+        console.log("click", evt);
+        const button = evt.target as HTMLButtonElement;
+        const pageNum = parseInt(button.value);
+        console.log(pageNum);
+
+        const searchInput = dialog.element.querySelector(".pmc-search-input") as HTMLInputElement;
+
+        this.doSearch(dialog, background, searchInput.value, pageNum);
     }
 
     private convertUnsplashResp(response: UnsplashResp): PageInfo {
