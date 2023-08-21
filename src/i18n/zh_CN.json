@@ -8,6 +8,10 @@
   "placeholder": "查找一张图片",
   "noEnableConfig": "请启用配置再重试",
   "use": "使用",
+  "downloadingCover": "正在下载题头图，请稍候",
+  "uploadingCover": "正在上传题头图到思源，请稍候",
+  "settingCover": "正在设置题头图，请稍候",
+  "setCoverSuccess": "成功设置题头图",
   "unsplash": {
     "accessKeyNotNull": "Unsplash Access Key can't be null."
   },

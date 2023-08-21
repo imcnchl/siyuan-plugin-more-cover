@@ -284,13 +284,20 @@ export default class MoreCoverPlugin extends Plugin {
         const url = target.dataset.downloadUrl;
         let suffix = "png";
         console.log(`${this.i18n.pluginName}: 开始下载图片：`, url);
+        // 显示遮罩层
+        dialog.element.querySelector(".pmc-change-loading").classList.remove("pmc-hide");
+        // 设置文字：正在下载题头图，请稍候
+        dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.downloadingCover}`;
         fetch(url)
             .then(response => {
+                // todo
                 suffix = response.url.substring(response.url.indexOf("fm=") + 3);
                 suffix = suffix.substring(0, suffix.indexOf("&"));
                 return response.blob();
             })
             .then(blob => {
+                // 设置文字：正在上传图片到思源，请稍候
+                dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.uploadingCover}`;
                 // 上传资源文件
                 const fileName = `${imageId}.${suffix}`;
 
@@ -302,6 +309,7 @@ export default class MoreCoverPlugin extends Plugin {
                 fetchPost("/api/asset/upload", fd, resp => {
                     const succMap = resp.data.succMap;
                     console.log(`${this.i18n.pluginName}: 上传封面成功`, succMap);
+                    dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.settingCover}`;
                     // 重新设置封面
                     fetchPost("/api/attr/setBlockAttrs", {
                         id: background.ial["id"],
@@ -309,6 +317,7 @@ export default class MoreCoverPlugin extends Plugin {
                             "title-img": `background-image:url(${succMap[fileName]})`
                         }
                     }, r => {
+                        showMessage(`${this.i18n.pluginName}: ${this.i18n.setCoverSuccess}`);
                         console.log(`${this.i18n.pluginName}: 设置封面成功`, r);
                         // 更新封面
                         background.ial["title-img"] = `background-image:url("${succMap[fileName]}")`;
@@ -317,6 +326,12 @@ export default class MoreCoverPlugin extends Plugin {
                         dialog.destroy();
                     });
                 });
+            })
+            .catch(reason => {
+                showMessage(reason, 5000, "error");
+                console.log(reason);
+                // 隐藏遮罩层
+                dialog.element.querySelector(".pmc-change-loading").classList.add("pmc-hide");
             });
     }
 
@@ -343,7 +358,15 @@ export default class MoreCoverPlugin extends Plugin {
         const dialog = new Dialog({
             title: this.i18n.pluginName,
             content: `
-<div class="b3-dialog__content" style="background: white; padding: 10px; display: flex; flex-direction: column">
+<div class="b3-dialog__content" style="background: white; padding: 10px; display: flex; flex-direction: column; position: relative">
+    <div class="pmc-change-loading pmc-hide">
+        <div class="pmc-change-loading-icon">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>    
+        <div class="pmc-change-loading-info"></div>    
+    </div>
     <div class="pmc-search">
         ${selectHtml}
         <div class="pmc-search-focusable-within">
@@ -354,7 +377,7 @@ export default class MoreCoverPlugin extends Plugin {
     </div>
     <div class="fn__hr"></div>
     <div class="pmc-rp">
-        <div class="pmc-rp-loading pmc-rp-loading-hide">
+        <div class="pmc-rp-loading pmc-hide">
         </div>
         <div class="pmc-rp-result"></div>
         <div class="pmc-rp-page"></div>
@@ -420,7 +443,7 @@ export default class MoreCoverPlugin extends Plugin {
         dialog.element.querySelector(".pmc-rp-page").innerHTML = "";
         // 显示遮罩层
         const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
-        mark.classList.remove("pmc-rp-loading-hide");
+        mark.classList.remove("pmc-hide");
         if (searchValue) {
             this.search(dialog, background, searchValue, pageNum);
         } else {
@@ -481,14 +504,14 @@ export default class MoreCoverPlugin extends Plugin {
                 this.showResult(dialog, background, config, pageInfo, pageNum);
                 // 隐藏遮罩层
                 const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
-                mark.classList.add("pmc-rp-loading-hide");
+                mark.classList.add("pmc-hide");
             })
             .catch(reason => {
                 showMessage(reason, 5000, "error");
                 console.log(reason);
                 // 隐藏遮罩层
                 const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
-                mark.classList.add("pmc-rp-loading-hide");
+                mark.classList.add("pmc-hide");
             });
     }
 
@@ -525,7 +548,7 @@ export default class MoreCoverPlugin extends Plugin {
         const pageElement = dialog.element.querySelector(".pmc-rp-page") as HTMLDivElement;
         pageElement.innerHTML = "";
         if (pageInfo.total) {
-            pageElement.classList.remove("hide");
+            pageElement.classList.remove("pmc-hide");
             // 进行分页
             let pageCount = Math.floor(pageInfo.total / config.pageSize);
             if (pageInfo.total % config.pageSize != 0) {
@@ -566,12 +589,12 @@ export default class MoreCoverPlugin extends Plugin {
             pageElement.append(padding);
 
             if (pageCount <= 1) {
-                pageElement.classList.add("pmc-rp-page-hide");
+                pageElement.classList.add("pmc-hide");
             } else {
-                pageElement.classList.remove("pmc-rp-page-hide");
+                pageElement.classList.remove("pmc-hide");
             }
         } else {
-            pageElement.classList.add("pmc-rp-page-hide");
+            pageElement.classList.add("pmc-hide");
         }
     }
 
@@ -624,7 +647,7 @@ export default class MoreCoverPlugin extends Plugin {
         console.log("-------- random ---------", dialog, background);
         // 隐藏遮罩层
         const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
-        mark.classList.add("pmc-rp-loading-hide");
+        mark.classList.add("pmc-hide");
     }
 
     private getEnableConfigs(): Config[] {
