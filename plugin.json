@@ -18,15 +18,15 @@
   },
   "description": {
     "default": "MoreCover, support Unsplash",
-    "zh_CN": "随机题头图，支持 Unsplash"
+    "zh_CN": "随机题头图，支持 Unsplash、Pixabay"
   },
   "readme": {
     "default": "README.md",
     "zh_CN": "README_zh_CN.md"
   },
   "funding": {
-    "openCollective": "",
-    "patreon": "",
-    "github": ""
+    "custom": [
+      "https://wj.qq.com/s2/12975404/0413/"
+    ]
   }
 }
