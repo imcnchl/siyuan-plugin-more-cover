@@ -14,10 +14,10 @@
   "setCoverSuccess": "成功设置题头图",
   "noResultsFound": "找不到结果",
   "unsplash": {
-    "accessKeyNotNull": "Unsplash Access Key can't be null."
+    "accessKeyNotNull": "Unsplash Access Key 不能为空"
   },
   "pixabay": {
-    "keyNotNull": "Pixabay Key can't be null."
+    "keyNotNull": "Pixabay Key 不能为空"
   },
 
   "unsplashAccessKeyPlaceHolder": "请输入 Unsplash Access Key",
