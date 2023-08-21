@@ -255,7 +255,7 @@ export default class MoreCoverPlugin extends Plugin {
             if (!allSuccess) {
                 return;
             }
-            this.saveData(STORAGE_NAME, config);
+            this.saveData(STORAGE_NAME, config).then(r => console.log("保存配置成功", r));
             dialog.destroy();
         });
     }
@@ -338,6 +338,7 @@ export default class MoreCoverPlugin extends Plugin {
         }
         // @ts-ignore
         const selectedName = config[selectedId].name;
+        console.log("selectedName", selectedName, "selectHtml", selectHtml);
 
         const dialog = new Dialog({
             title: this.i18n.pluginName,
@@ -371,6 +372,8 @@ export default class MoreCoverPlugin extends Plugin {
             searchInput.setAttribute("placeholder", placeholder);
             searchInput.dispatchEvent(new InputEvent("input"));
             searchBtn?.dispatchEvent(new Event("click"));
+            config.common.selectedId = id;
+            this.saveData(STORAGE_NAME, config).then(r => console.log("保存下拉框成功", r));
         });
 
         if (!config.common.autoSearch) {
