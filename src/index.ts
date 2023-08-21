@@ -358,15 +358,15 @@ export default class MoreCoverPlugin extends Plugin {
         const dialog = new Dialog({
             title: this.i18n.pluginName,
             content: `
-<div class="b3-dialog__content" style="background: white; padding: 10px; display: flex; flex-direction: column; position: relative">
-    <div class="pmc-change-loading pmc-hide">
-        <div class="pmc-change-loading-icon">
-            <div></div>
-            <div></div>
-            <div></div>
-        </div>    
-        <div class="pmc-change-loading-info"></div>    
-    </div>
+<div class="pmc-change-loading pmc-hide">
+    <div class="pmc-change-loading-icon">
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>    
+    <div class="pmc-change-loading-info"></div>    
+</div>
+<div class="b3-dialog__content" style="background: white; padding: 10px; display: flex; flex-direction: column;">
     <div class="pmc-search">
         ${selectHtml}
         <div class="pmc-search-focusable-within">
