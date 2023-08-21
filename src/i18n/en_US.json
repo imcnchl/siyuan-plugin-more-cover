@@ -12,6 +12,7 @@
   "uploadingCover": "Uploading cover to SiYuan, please wait",
   "settingCover": "Setting the cover, please wait",
   "setCoverSuccess": "The cover was successfully set",
+  "noResultsFound": "No results found",
   "unsplash": {
     "accessKeyNotNull": "Unsplash Access Key can't be null."
   },
