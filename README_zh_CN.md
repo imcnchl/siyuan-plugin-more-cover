@@ -28,3 +28,9 @@
 访问地址：https://pixabay.com/api/docs/
 
 1. 拷贝Key ![pixabay_key.png](https://s2.loli.net/2023/08/21/xdQnz5p2jsMVaH3.png)
+
+# 变更记录
+
+## 1.0.0
+
+* 支持 Unsplash 和 Pixabay
