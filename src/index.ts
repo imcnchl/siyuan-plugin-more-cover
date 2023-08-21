@@ -343,7 +343,7 @@ export default class MoreCoverPlugin extends Plugin {
         const dialog = new Dialog({
             title: this.i18n.pluginName,
             content: `
-<div class="b3-dialog__content" style="background: white; padding: 10px">
+<div class="b3-dialog__content" style="background: white; padding: 10px; display: flex; flex-direction: column">
     <div class="pmc-search">
         ${selectHtml}
         <div class="pmc-search-focusable-within">
@@ -353,8 +353,12 @@ export default class MoreCoverPlugin extends Plugin {
         ${config.common.autoSearch ? "" : "<button class=\"pmc-search-btn\">" + this.i18n.search + "</button>"}
     </div>
     <div class="fn__hr"></div>
-    <div class="pmc-result"></div>
-    <div class="pmc-page"></div>
+    <div class="pmc-rp">
+        <div class="pmc-rp-loading pmc-rp-loading-hide">
+        </div>
+        <div class="pmc-rp-result"></div>
+        <div class="pmc-rp-page"></div>
+    </div>
 </div>`,
             width: this.isMobile ? "92vw" : "600px",
             height: "540px",
@@ -406,11 +410,17 @@ export default class MoreCoverPlugin extends Plugin {
     }
 
     private currentPage(dialog: Dialog) {
-        const curPage = dialog.element.querySelector(".pmc-page .pmc-page-cur") as HTMLDivElement;
+        const curPage = dialog.element.querySelector(".pmc-rp-page .pmc-rp-page-cur") as HTMLDivElement;
         return curPage ? parseInt(curPage.innerHTML) : 1;
     }
 
     private doSearch(dialog: Dialog, background: Background, searchValue?: string, pageNum?: number) {
+        // 清空结果
+        dialog.element.querySelector(".pmc-rp-result").innerHTML = "";
+        dialog.element.querySelector(".pmc-rp-page").innerHTML = "";
+        // 显示遮罩层
+        const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
+        mark.classList.remove("pmc-rp-loading-hide");
         if (searchValue) {
             this.search(dialog, background, searchValue, pageNum);
         } else {
@@ -469,10 +479,16 @@ export default class MoreCoverPlugin extends Plugin {
                 }
                 console.log("pageInfo", pageInfo);
                 this.showResult(dialog, background, config, pageInfo, pageNum);
+                // 隐藏遮罩层
+                const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
+                mark.classList.add("pmc-rp-loading-hide");
             })
             .catch(reason => {
                 showMessage(reason, 5000, "error");
                 console.log(reason);
+                // 隐藏遮罩层
+                const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
+                mark.classList.add("pmc-rp-loading-hide");
             });
     }
 
@@ -485,13 +501,13 @@ export default class MoreCoverPlugin extends Plugin {
             console.log(`${this.i18n.pluginName}: 找不到图片`);
             return;
         }
-        const result = dialog.element.querySelector(".pmc-result");
+        const result = dialog.element.querySelector(".pmc-rp-result");
         result.innerHTML = "";
         pageInfo.items.forEach(value => {
             const div = document.createElement("div");
-            div.classList.add("pmc-result-item");
+            div.classList.add("pmc-rp-result-item");
             div.innerHTML = `
-<div class="pmc-result-item-img">
+<div class="pmc-rp-result-item-img">
     <div style="width: 100%; height: 100%;">
     <img src="${value.thumbUrl}"
             data-image-id="${value.id}"
@@ -499,14 +515,14 @@ export default class MoreCoverPlugin extends Plugin {
             alt="${value.description}"/>
     </div>
 </div>
-<div class="pmc-result-item-person">
+<div class="pmc-rp-result-item-person">
     by <a href="${value.htmlUrl}" title="${value.username}" target="_blank">${value.username}</a>
 </div>`;
             div.querySelector("img").addEventListener(this.getEventName(), ev => this.changeCover(ev, background, dialog));
             result.appendChild(div);
         });
 
-        const pageElement = dialog.element.querySelector(".pmc-page") as HTMLDivElement;
+        const pageElement = dialog.element.querySelector(".pmc-rp-page") as HTMLDivElement;
         pageElement.innerHTML = "";
         if (pageInfo.total) {
             pageElement.classList.remove("hide");
@@ -526,17 +542,17 @@ export default class MoreCoverPlugin extends Plugin {
             console.log("startPage=", startPage, "endPage=", endPage);
 
             let padding = document.createElement("div");
-            padding.classList.add("pmc-page-padding");
+            padding.classList.add("pmc-rp-page-padding");
             pageElement.append(padding);
 
             for (let page = startPage; page <= endPage; page++) {
                 const btn = document.createElement("button");
-                btn.classList.add("pmc-page-item");
+                btn.classList.add("pmc-rp-page-item");
                 btn.type = "button";
                 btn.value = String(page);
                 btn.innerText = String(page);
                 if (curPage == page) {
-                    btn.classList.add("pmc-page-cur");
+                    btn.classList.add("pmc-rp-page-cur");
                     btn.disabled = true;
                 }
                 pageElement.append(btn);
@@ -546,14 +562,16 @@ export default class MoreCoverPlugin extends Plugin {
             }
 
             padding = document.createElement("div");
-            padding.classList.add("pmc-page-padding");
+            padding.classList.add("pmc-rp-page-padding");
             pageElement.append(padding);
 
             if (pageCount <= 1) {
-                pageElement.classList.add("pmc-page-hide");
+                pageElement.classList.add("pmc-rp-page-hide");
+            } else {
+                pageElement.classList.remove("pmc-rp-page-hide");
             }
         } else {
-            pageElement.classList.add("pmc-page-hide");
+            pageElement.classList.add("pmc-rp-page-hide");
         }
     }
 
@@ -604,6 +622,9 @@ export default class MoreCoverPlugin extends Plugin {
 
     private random(dialog: Dialog, background: Background) {
         console.log("-------- random ---------", dialog, background);
+        // 隐藏遮罩层
+        const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
+        mark.classList.add("pmc-rp-loading-hide");
     }
 
     private getEnableConfigs(): Config[] {
