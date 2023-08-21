@@ -520,11 +520,12 @@ export default class MoreCoverPlugin extends Plugin {
             showMessage(pageInfo.errors.join("\n"), 5000, "error");
             return;
         }
+        const result = dialog.element.querySelector(".pmc-rp-result");
         if (pageInfo.total <= 0) {
             console.log(`${this.i18n.pluginName}: 找不到图片`);
+            result.innerHTML = `<p style="margin: auto">${this.i18n.noResultsFound}</p>`;
             return;
         }
-        const result = dialog.element.querySelector(".pmc-rp-result");
         result.innerHTML = "";
         pageInfo.items.forEach(value => {
             const div = document.createElement("div");
