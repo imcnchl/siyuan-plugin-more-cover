@@ -12,6 +12,9 @@
 1. Click on the random cover ![click_random1.png](https://s2.loli.net/2023/08/21/8hmIfbWANBoRyg9.png)
 2. Choose the picture you like ![select.png](https://s2.loli.net/2023/08/21/tI6GjbNMWq2nmBl.png) ![select2.png](https://s2.loli.net/2023/08/21/YtNMmH5JAKgzyfD.png)
 
+Some galleries may not be available due to network reasons and can be accelerated by configuring a proxy for SiYuan
+![proxy.png](https://s2.loli.net/2023/08/21/b4CiLeZzFU7o5PH.png)
+
 ## Apply for interfaces for each gallery
 
 ### Apply Unsplash
