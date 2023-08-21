@@ -397,7 +397,8 @@ export default class MoreCoverPlugin extends Plugin {
                 }, 500);
             });
         }
-
+        // 每次打开都进行焦点
+        searchInput.focus();
         // 打开对话框时自动查询
         this.doSearch(dialog, background);
     }
