@@ -91,7 +91,7 @@
       padding: 3px 6px;
       position: relative;
       border-radius: 4px;
-      box-shadow: rgba(15, 15, 15, 0.1) 0px 0px 0px 1px inset;
+      box-shadow: rgba(15, 15, 15, 0.1) 0 0 0 1px inset;
       background: rgba(242, 241, 238, 0.6);
       cursor: text;
       height: 28px;
@@ -112,7 +112,7 @@
     }
 
     &-focusable-within:focus-within {
-      box-shadow: rgba(35, 131, 226, 0.57) 0px 0px 0px 1px inset, rgba(35, 131, 226, 0.35) 0px 0px 0px 2px !important;
+      box-shadow: rgba(35, 131, 226, 0.57) 0 0 0 1px inset, rgba(35, 131, 226, 0.35) 0 0 0 2px !important;
     }
 
     &-btn {
@@ -120,102 +120,135 @@
     }
   }
 
-  // 搜索结果
-  &-result {
-    display: flex;
-    flex-wrap: wrap;
-    align-content: flex-start;
-    background: white;
+  &-rp {
+    flex: 1;
 
-    &-item {
-      width: 20%;
-      padding: 3px;
-      box-sizing: border-box;
-      text-align: center;
-
-      &-img {
-        user-select: none;
-        transition: background 20ms ease-in 0s;
-        cursor: pointer;
-
-        & img {
-          display: block;
-          object-fit: cover;
-          border-radius: 3px;
-          width: 100%;
-          height: 64px;
-          object-position: center 0;
-        }
-      }
-
-      &-person {
-        font-size: 12px;
-        line-height: 16px;
-        color: rgba(55, 53, 47, 0.5);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        margin-top: 2px;
-        margin-bottom: 4px;
-
-        & a {
-          display: inline;
-          color: inherit;
-          text-decoration: underline;
-          user-select: none;
-          cursor: pointer;
-        }
-      }
-    }
-  }
-
-  // 分页
-  &-page {
-    display: flex;
-    text-align: center;
-
-    &-hide {
-      display: none !important;
-    }
-
-    &-padding {
-      flex: 1;
-    }
-
-    &-item {
+    &-loading {
+      position: relative;
       width: 30px;
       height: 30px;
-      padding: 0;
-      transition: color .3s;
-      cursor: pointer;
-      border-radius: 6px;
-      display: inline-block;
-      margin-inline-end: 5px;
-      line-height: 30px;
+      border: 2px solid rgba(0, 0, 0, 0.2);
+      border-left-color: #000;
+      border-radius: 100%;
+      margin: auto;
+      top: 100px;
+
+      animation: pmc-loading-circle infinite 0.75s linear;
+
+      @keyframes pmc-loading-circle {
+        0% {
+          transform: rotate(0);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      &-hide {
+        display: none !important;
+      }
+    }
+
+
+
+    // 搜索结果
+    &-result {
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      background: white;
+
+      &-item {
+        width: 20%;
+        padding: 3px;
+        box-sizing: border-box;
+        text-align: center;
+
+        &-img {
+          user-select: none;
+          transition: background 20ms ease-in 0s;
+          cursor: pointer;
+
+          & img {
+            display: block;
+            object-fit: cover;
+            border-radius: 3px;
+            width: 100%;
+            height: 64px;
+            object-position: center 0;
+          }
+        }
+
+        &-person {
+          font-size: 12px;
+          line-height: 16px;
+          color: rgba(55, 53, 47, 0.5);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          margin-top: 2px;
+          margin-bottom: 4px;
+
+          & a {
+            display: inline;
+            color: inherit;
+            text-decoration: underline;
+            user-select: none;
+            cursor: pointer;
+          }
+        }
+      }
+    }
+
+    // 分页
+    &-page {
+      display: flex;
       text-align: center;
-      vertical-align: middle;
-      list-style: none;
-      background-color: transparent;
-      border: 1px solid transparent;
-      outline: 0;
-      user-select: none;
-    }
 
-    &-item:hover {
-      transition: all 0.2s;
-      background-color: rgba(0, 0, 0, 0.06);
-    }
+      &-hide {
+        display: none !important;
+      }
 
-    &-item:first-child {
-      margin-left: 0;
-    }
+      &-padding {
+        flex: 1;
+      }
 
-    &-cur {
-      pointer-events: none;
-      border: 1px solid #1677ff;
-      background-color: #ffffff;
-      font-weight: 600;
-      color: #1677ff;
+      &-item {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        transition: color .3s;
+        cursor: pointer;
+        border-radius: 6px;
+        display: inline-block;
+        margin-inline-end: 5px;
+        line-height: 30px;
+        text-align: center;
+        vertical-align: middle;
+        list-style: none;
+        background-color: transparent;
+        border: 1px solid transparent;
+        outline: 0;
+        user-select: none;
+      }
+
+      &-item:hover {
+        transition: all 0.2s;
+        background-color: rgba(0, 0, 0, 0.06);
+      }
+
+      &-item:first-child {
+        margin-left: 0;
+      }
+
+      &-cur {
+        pointer-events: none;
+        border: 1px solid #1677ff;
+        background-color: #ffffff;
+        font-weight: 600;
+        color: #1677ff;
+      }
     }
   }
 }
