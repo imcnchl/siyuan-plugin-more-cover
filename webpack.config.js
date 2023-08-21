@@ -27,13 +27,12 @@ module.exports = (env, argv) => {
         }));
         plugins.push(new CopyPlugin({
             patterns: [
-                {from: "alipay.jpg", to: "./dist/"},
-                {from: "wxpay.jpg", to: "./dist/"},
                 {from: "preview.png", to: "./dist/"},
                 {from: "icon.png", to: "./dist/"},
                 {from: "README*.md", to: "./dist/"},
                 {from: "plugin.json", to: "./dist/"},
                 {from: "src/i18n/", to: "./dist/i18n/"},
+                {from: "images/", to: "./dist/"},
             ],
         }));
         plugins.push(new ZipPlugin({
