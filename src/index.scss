@@ -1,4 +1,8 @@
 .pmc {
+  &-hide {
+    display: none !important;
+  }
+
   &-config {
     width: 100%;
   }
@@ -144,13 +148,7 @@
           transform: rotate(360deg);
         }
       }
-
-      &-hide {
-        display: none !important;
-      }
     }
-
-
 
     // 搜索结果
     &-result {
@@ -206,10 +204,6 @@
       display: flex;
       text-align: center;
 
-      &-hide {
-        display: none !important;
-      }
-
       &-padding {
         flex: 1;
       }
@@ -249,6 +243,67 @@
         font-weight: 600;
         color: #1677ff;
       }
+    }
+  }
+
+  &-change-loading {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.45);
+
+    &-icon {
+      position: relative;
+      box-sizing: border-box;
+      display: block;
+      font-size: 0;
+      color: #fff;
+      width: 54px;
+      height: 18px;
+      margin: auto;
+      top: 200px;
+
+      & div {
+        position: relative;
+        box-sizing: border-box;
+        display: inline-block;
+        float: none;
+        background-color: currentColor;
+        border: 0 solid currentColor;
+        width: 10px;
+        height: 10px;
+        margin: 4px;
+        border-radius: 100%;
+        animation: pmc-change-loading-ball-beat 0.7s -0.15s infinite linear;
+      }
+
+      & div:nth-child(2n-1) {
+        animation-delay: -0.5s;
+      }
+
+      @keyframes pmc-change-loading-ball-beat {
+        50% {
+          opacity: 0.2;
+          transform: scale(0.75);
+        }
+
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    }
+
+    &-info {
+      margin: 0;
+      text-align: center;
+      top: 210px;
+      position: relative;
+      color: #dfdfdf;
+      padding: 10px;
     }
   }
 }
