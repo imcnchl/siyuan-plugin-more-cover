@@ -278,11 +278,11 @@ export default class MoreCoverPlugin extends Plugin {
         return this.data[STORAGE_NAME];
     }
 
-    private changeCover(event: Event, background: Background, dialog: Dialog) {
+    private changeCover(event: Event, background: Background, dialog: Dialog, config: Config) {
         const target = event.target as HTMLElement;
         const imageId = target.dataset.imageId;
         const url = target.dataset.downloadUrl;
-        let suffix = "png";
+        let format = "png";
         console.log(`${this.i18n.pluginName}: 开始下载图片：`, url);
         // 显示遮罩层
         dialog.element.querySelector(".pmc-change-loading").classList.remove("pmc-hide");
@@ -290,16 +290,14 @@ export default class MoreCoverPlugin extends Plugin {
         dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.downloadingCover}`;
         fetch(url)
             .then(response => {
-                // todo
-                suffix = response.url.substring(response.url.indexOf("fm=") + 3);
-                suffix = suffix.substring(0, suffix.indexOf("&"));
+                format = this.convertFormat(config, response.url);
                 return response.blob();
             })
             .then(blob => {
                 // 设置文字：正在上传图片到思源，请稍候
                 dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.uploadingCover}`;
                 // 上传资源文件
-                const fileName = `${imageId}.${suffix}`;
+                const fileName = `${config.id}-${imageId}.${format}`;
 
                 const fd = new FormData();
                 fd.append("assetsDirPath", "/assets/");
@@ -489,17 +487,7 @@ export default class MoreCoverPlugin extends Plugin {
         fetch(url)
             .then(response => response.json())
             .then(rs => {
-                let pageInfo;
-                switch (config.id) {
-                    case "unsplash":
-                        pageInfo = this.convertUnsplashResp(rs as UnsplashResp);
-                        break;
-                    case "pixabay":
-                        pageInfo = this.convertPixabayResp(rs as PixabayResp);
-                        break;
-                    default:
-                        throw new Error(`不支持 ${config.id} - ${config.name}`);
-                }
+                let pageInfo = this.convertResp(config, rs);
                 console.log("pageInfo", pageInfo);
                 this.showResult(dialog, background, config, pageInfo, pageNum);
                 // 隐藏遮罩层
@@ -513,6 +501,39 @@ export default class MoreCoverPlugin extends Plugin {
                 const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
                 mark.classList.add("pmc-hide");
             });
+    }
+
+    /**
+     * 转换分页对象，新增配置时需要调整这里
+     * @private
+     */
+    private convertResp(config: Config, rs: any) {
+        switch (config.id) {
+            case "unsplash":
+                return this.convertUnsplashResp(rs as UnsplashResp);
+            case "pixabay":
+                return this.convertPixabayResp(rs as PixabayResp);
+            default:
+                throw new Error(`不支持 ${config.id} - ${config.name}`);
+        }
+    }
+
+    /**
+     * 获取文件扩展名，新增配置时需要调整这里
+     * @private
+     */
+    private convertFormat(config: Config, url: string): string {
+        switch (config.id) {
+            case "unsplash": {
+                const format = url.substring(url.indexOf("fm=") + 3);
+                return format.substring(0, format.indexOf("&"));
+            }
+            case "pixabay":
+            default: {
+                return url.substring(url.lastIndexOf(".") + 1);
+            }
+        }
+
     }
 
     private showResult(dialog: Dialog, background: Background, config: Config, pageInfo: PageInfo, curPage: number) {
@@ -542,7 +563,8 @@ export default class MoreCoverPlugin extends Plugin {
 <div class="pmc-rp-result-item-person">
     by <a href="${value.htmlUrl}" title="${value.username}" target="_blank">${value.username}</a>
 </div>`;
-            div.querySelector("img").addEventListener(this.getEventName(), ev => this.changeCover(ev, background, dialog));
+            div.querySelector("img").addEventListener(this.getEventName(),
+                ev => this.changeCover(ev, background, dialog, config));
             result.appendChild(div);
         });
 
