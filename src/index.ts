@@ -344,8 +344,11 @@ export default class MoreCoverPlugin extends Plugin {
             content: `
 <div class="b3-dialog__content" style="background: white; padding: 10px">
     <div class="pmc-search">
-        ${selectHtml}    
-        <input class="pmc-search-input" type="text" placeholder="${this.i18n.use} ${selectedName} ${this.i18n.searchUnsplashPlaceholder}"/>
+        ${selectHtml}
+        <div class="pmc-search-focusable-within">
+            <input class="pmc-search-input" type="text" autofocus="autofocus" 
+                placeholder="${this.i18n.use} ${selectedName} ${this.i18n.searchUnsplashPlaceholder}"/>
+        </div>    
         ${config.common.autoSearch ? "" : "<button class=\"pmc-search-btn\">" + this.i18n.search + "</button>"}
     </div>
     <div class="fn__hr"></div>
@@ -501,7 +504,6 @@ export default class MoreCoverPlugin extends Plugin {
         pageElement.innerHTML = "";
         if (pageInfo.total) {
             pageElement.classList.remove("hide");
-            console.log("----------- process page");
             // 进行分页
             let pageCount = Math.floor(pageInfo.total / config.pageSize);
             if (pageInfo.total % config.pageSize != 0) {
