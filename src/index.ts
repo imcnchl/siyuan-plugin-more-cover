@@ -541,8 +541,7 @@ export default class MoreCoverPlugin extends Plugin {
             padding.classList.add("pmc-page-padding");
             pageElement.append(padding);
 
-            if (pageCount > 1) {
-                console.log("---------------pagecount");
+            if (pageCount <= 1) {
                 pageElement.classList.add("pmc-page-hide");
             }
         } else {
