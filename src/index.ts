@@ -1,4 +1,4 @@
-import {Dialog, fetchPost, getFrontend, IObject, Plugin, showMessage} from "siyuan";
+import {Dialog, fetchPost, getFrontend, IObject, Lute, Plugin, showMessage} from "siyuan";
 import "./index.scss";
 
 const STORAGE_NAME = "more-cover-config";
@@ -320,6 +320,18 @@ export default class MoreCoverPlugin extends Plugin {
                         // 更新封面
                         background.ial["title-img"] = `background-image:url("${succMap[fileName]}")`;
                         background.imgElement.src = `${succMap[fileName]}`;
+                        const img = background.ial["title-img"];
+                        background.imgElement.classList.remove("fn__none");
+                        // @ts-ignore
+                        background.imgElement.setAttribute("style", window.Lute.UnEscapeHTMLStr(img));
+                        const position = background.imgElement.style.backgroundPosition || background.imgElement.style.objectPosition;
+                        const url = background.imgElement.style.backgroundImage?.replace(/^url\(["']?/, "").replace(/["']?\)$/, "");
+                        background.imgElement.removeAttribute("style");
+                        background.imgElement.setAttribute("src", url);
+                        background.imgElement.style.objectPosition = position;
+                        background.element.querySelector('[data-type="position"]').classList.remove("fn__none");
+                        background.element.style.minHeight = "30vh";
+
                         // 关闭 dialog
                         dialog.destroy();
                     });
