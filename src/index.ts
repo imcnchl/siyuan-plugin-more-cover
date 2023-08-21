@@ -374,6 +374,8 @@ export default class MoreCoverPlugin extends Plugin {
             searchBtn?.dispatchEvent(new Event("click"));
             config.common.selectedId = id;
             this.saveData(STORAGE_NAME, config).then(r => console.log("保存下拉框成功", r));
+            // 切换下拉框后也需要焦点
+            searchInput.focus();
         });
 
         if (!config.common.autoSearch) {
