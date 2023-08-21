@@ -12,6 +12,9 @@
 1. 点击随机题头图 ![click_random1.png](https://s2.loli.net/2023/08/21/8hmIfbWANBoRyg9.png)
 2. 选择你喜欢的图片 ![select.png](https://s2.loli.net/2023/08/21/tI6GjbNMWq2nmBl.png) ![select2.png](https://s2.loli.net/2023/08/21/YtNMmH5JAKgzyfD.png)
 
+由于网络原因，可能有些图库无法使用，可以通过配置思源的代理进行加速
+![proxy.png](https://s2.loli.net/2023/08/21/b4CiLeZzFU7o5PH.png)
+
 ## 申请各个图库的接口
 
 ### 申请 Unsplash
