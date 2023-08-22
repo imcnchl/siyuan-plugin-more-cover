@@ -37,3 +37,8 @@
 ## v1.0.0
 
 * 支持 Unsplash 和 Pixabay
+
+## v1.0.1
+
+* 代理配置说明
+* 正确对接 Unsplash 的接口
