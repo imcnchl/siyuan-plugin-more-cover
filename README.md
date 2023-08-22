@@ -9,8 +9,9 @@
 
 ## Use
 
-1. Click on the random cover ![click_random1.png](https://s2.loli.net/2023/08/21/8hmIfbWANBoRyg9.png)
-2. Choose the picture you like ![select.png](https://s2.loli.net/2023/08/21/tI6GjbNMWq2nmBl.png) ![select2.png](https://s2.loli.net/2023/08/21/YtNMmH5JAKgzyfD.png)
+1. For the first time, close all open tabs
+2. Click on the random cover ![click_random1.png](https://s2.loli.net/2023/08/21/8hmIfbWANBoRyg9.png)
+3. Choose the picture you like ![select.png](https://s2.loli.net/2023/08/21/tI6GjbNMWq2nmBl.png) ![select2.png](https://s2.loli.net/2023/08/21/YtNMmH5JAKgzyfD.png)
 
 Some galleries may not be available due to network reasons and can be accelerated by configuring a proxy for SiYuan
 ![proxy.png](https://s2.loli.net/2023/08/21/b4CiLeZzFU7o5PH.png)
@@ -46,3 +47,7 @@ Access address：https://pixabay.com/api/docs/
 ## v1.0.2
 
 * pixabay support for language selection
+
+## v1.0.3
+
+* Update README

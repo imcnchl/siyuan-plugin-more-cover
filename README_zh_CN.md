@@ -9,8 +9,9 @@
 
 ## 使用
 
-1. 点击随机题头图 ![click_random1.png](https://s2.loli.net/2023/08/21/8hmIfbWANBoRyg9.png)
-2. 选择你喜欢的图片 ![select.png](https://s2.loli.net/2023/08/21/tI6GjbNMWq2nmBl.png) ![select2.png](https://s2.loli.net/2023/08/21/YtNMmH5JAKgzyfD.png)
+1. 首次使用，请关闭所有已打开的标签页
+2. 点击随机题头图 ![click_random1.png](https://s2.loli.net/2023/08/21/8hmIfbWANBoRyg9.png) 
+3. 选择你喜欢的图片 ![select.png](https://s2.loli.net/2023/08/21/tI6GjbNMWq2nmBl.png) ![select2.png](https://s2.loli.net/2023/08/21/YtNMmH5JAKgzyfD.png)
 
 由于网络原因，可能有些图库无法使用，可以通过配置思源的代理进行加速
 ![proxy.png](https://s2.loli.net/2023/08/21/b4CiLeZzFU7o5PH.png)
@@ -46,3 +47,7 @@
 ## v1.0.2
 
 * pixabay 支持选择语言
+
+## v1.0.3
+
+* 修改 README
