@@ -13,6 +13,9 @@
   "settingCover": "正在设置题头图，请稍候",
   "setCoverSuccess": "成功设置题头图",
   "noResultsFound": "找不到结果",
+  "searchPlaceholder": "查找一张图片",
+  "save": "保存",
+  "cancel": "取消",
   "unsplash": {
     "applicationNameNotNull": "Unsplash Application Name 不能为空",
     "accessKeyNotNull": "Unsplash Access Key 不能为空"
@@ -20,16 +23,8 @@
   "pixabay": {
     "keyNotNull": "Pixabay Key 不能为空"
   },
-
-  "unsplashAccessKeyPlaceHolder": "请输入 Unsplash Access Key",
-  "unsplashAccessKeyNotNull": "Unsplash Access Key 不能为空",
-  "searchUnsplashPlaceholder": "查找一张图片",
-  "cancel": "取消",
-  "save": "保存",
-  "byeMenu": "再见，菜单！",
-  "helloPlugin": "你好，插件！",
-  "showDialog": "弹出一个对话框",
-  "removedData": "数据已删除",
-  "confirmRemove": "确认删除 ${name} 中的数据？",
-  "insertEmoji": "插入表情"
+  "languages": {
+    "zh": "简体中文",
+    "en": "英文"
+  }
 }
