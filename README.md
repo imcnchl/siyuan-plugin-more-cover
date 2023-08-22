@@ -51,3 +51,8 @@ Access address：https://pixabay.com/api/docs/
 ## v1.0.3
 
 * Update README
+
+## v1.0.4
+
+* Support dark themes
+* Set the page number to 1 when switching between galleries
