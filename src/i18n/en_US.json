@@ -13,21 +13,18 @@
   "settingCover": "Setting the cover, please wait",
   "setCoverSuccess": "The cover was successfully set",
   "noResultsFound": "No results found",
+  "searchPlaceholder": "search for an image",
+  "save": "Save",
+  "cancel": "Cancel",
   "unsplash": {
     "applicationNameNotNull": "Unsplash Application Name can't be null.",
     "accessKeyNotNull": "Unsplash Access Key can't be null."
   },
-
-  "unsplashAccessKeyPlaceHolder": "Please input Unsplash Access Key",
-  "unsplashAccessKeyNotNull": "Unsplash Access Key can not be null",
-  "searchUnsplashPlaceholder": "search for an image",
-  "cancel": "Cancel",
-  "save": "Save",
-  "byeMenu": "Bye, Menu!",
-  "helloPlugin": "Hello, Plugin!",
-  "byePlugin": "Bye, Plugin!",
-  "showDialog": "Show dialog",
-  "removedData": "Data deleted",
-  "confirmRemove": "Confirm to delete the data in ${name}?",
-  "insertEmoji": "Insert Emoji"
+  "pixabay": {
+    "keyNotNull": "Pixabay Key can't be null."
+  },
+  "languages": {
+    "zh": "Chinese",
+    "en": "English"
+  }
 }

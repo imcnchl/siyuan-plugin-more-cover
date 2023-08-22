@@ -150,6 +150,10 @@ class Configs {
 export default class MoreCoverPlugin extends Plugin {
 
     private isMobile: boolean;
+    private pixabayLanguages = {
+        "zh": `${this.i18n.languages.zh}`,
+        "en": `${this.i18n.languages.en}`
+    };
 
     onload() {
         this.data[STORAGE_NAME] = new Configs();
@@ -249,7 +253,7 @@ export default class MoreCoverPlugin extends Plugin {
             config.pixabay.enable = (pixabay.querySelector(".pmc-config_enable") as HTMLInputElement).checked;
             config.pixabay.key = (pixabay.querySelector(".pmc-config_key") as HTMLInputElement).value;
 
-            let allSuccess = this.validateConfig(config);
+            const allSuccess = this.validateConfig(config);
             if (!allSuccess) {
                 return;
             }
@@ -395,20 +399,29 @@ export default class MoreCoverPlugin extends Plugin {
 
         console.log(enableConfigs);
         let selectedId = enableConfigs[0].id;
-        let selectHtml = "";
+        let selectConfigHtml = "";
         if (enableConfigs.length > 1) {
-            selectHtml += "<select class=\"pmc-search-select\">";
+            selectConfigHtml += "<select class=\"pmc-search-select\">";
             enableConfigs.forEach((c) => {
                 if (c.id == config.common.selectedId) {
                     selectedId = c.id;
                 }
-                selectHtml += `<option value="${c.id}" ${c.id == config.common.selectedId ? "selected" : ""}>${c.name}</option>`;
+                selectConfigHtml += `<option value="${c.id}" ${c.id == config.common.selectedId ? "selected" : ""}>${c.name}</option>`;
             });
-            selectHtml += "</select>";
+            selectConfigHtml += "</select>";
         }
+
+        let pixabayLanguageHtml = "<select class=\"pmc-search-pixabay-language-select\">";
+        for (const code in this.pixabayLanguages) {
+            // @ts-ignore
+            const name = this.pixabayLanguages[code];
+            pixabayLanguageHtml += `<option value="${code}" ${code == config.pixabay.language ? "selected" : ""}>${name}</option>`;
+        }
+        pixabayLanguageHtml += "</select>";
+
         // @ts-ignore
         const selectedName = config[selectedId].name;
-        console.log("selectedName", selectedName, "selectHtml", selectHtml);
+        console.log("selectedName", selectedName, "selectHtml", selectConfigHtml);
 
         const dialog = new Dialog({
             title: this.i18n.pluginName,
@@ -423,10 +436,11 @@ export default class MoreCoverPlugin extends Plugin {
 </div>
 <div class="b3-dialog__content" style="background: white; padding: 10px; display: flex; flex-direction: column;">
     <div class="pmc-search">
-        ${selectHtml}
+        ${selectConfigHtml}
+        ${pixabayLanguageHtml}
         <div class="pmc-search-focusable-within">
             <input class="pmc-search-input" type="text" autofocus="autofocus" 
-                placeholder="${this.i18n.use} ${selectedName} ${this.i18n.searchUnsplashPlaceholder}"/>
+                placeholder="${this.i18n.use} ${selectedName} ${this.i18n.searchPlaceholder}"/>
         </div>    
         ${config.common.autoSearch ? "" : "<button class=\"pmc-search-btn\">" + this.i18n.search + "</button>"}
     </div>
@@ -445,16 +459,35 @@ export default class MoreCoverPlugin extends Plugin {
         // 绑定事件
         const searchInput = dialog.element.querySelector(".pmc-search-input") as HTMLInputElement;
         const searchBtn = dialog.element.querySelector(".pmc-search-btn");
+        const pixabayLanguageSelect = dialog.element.querySelector(".pmc-search-pixabay-language-select") as HTMLSelectElement;
         dialog.element.querySelector(".pmc-search-select")?.addEventListener("change", evt => {
             const target = evt.target as HTMLSelectElement;
             const id = target.options[target.selectedIndex].value;
             // @ts-ignore
             const name = (config[id] as Config).name;
-            const placeholder = `${this.i18n.use} ${name} ${this.i18n.searchUnsplashPlaceholder}`;
+            const placeholder = `${this.i18n.use} ${name} ${this.i18n.searchPlaceholder}`;
             searchInput.setAttribute("placeholder", placeholder);
             searchInput.dispatchEvent(new InputEvent("input"));
             searchBtn?.dispatchEvent(new Event("click"));
             config.common.selectedId = id;
+            this.saveData(STORAGE_NAME, config).then(r => console.log("保存下拉框成功", r));
+            if (id != "pixabay") {
+                pixabayLanguageSelect?.classList.add("pmc-hide");
+            } else {
+                pixabayLanguageSelect?.classList.remove("pmc-hide");
+            }
+            // 切换下拉框后也需要焦点
+            searchInput.focus();
+        });
+        if (selectedId != "pixabay") {
+            pixabayLanguageSelect?.classList.add("pmc-hide");
+        }
+        pixabayLanguageSelect?.addEventListener("change", evt => {
+            const target = evt.target as HTMLSelectElement;
+            const id = target.options[target.selectedIndex].value;
+            searchInput.dispatchEvent(new InputEvent("input"));
+            searchBtn?.dispatchEvent(new Event("click"));
+            config.pixabay.language = id;
             this.saveData(STORAGE_NAME, config).then(r => console.log("保存下拉框成功", r));
             // 切换下拉框后也需要焦点
             searchInput.focus();
