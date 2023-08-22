@@ -485,8 +485,7 @@ export default class MoreCoverPlugin extends Plugin {
         if (!config.common.autoSearch) {
             searchBtn.addEventListener("click", () => {
                 const searchValue = searchInput.value;
-                const pageNum = this.currentPage(dialog);
-                this.doSearch(dialog, background, searchValue, pageNum);
+                this.doSearch(dialog, background, searchValue, 1);
             });
         } else {
             let lastTime = 0;
@@ -497,8 +496,7 @@ export default class MoreCoverPlugin extends Plugin {
                 // 延时查询：0.5秒后没有输入则进行查询
                 setTimeout(() => {
                     if (curTime == lastTime) {
-                        const pageNum = this.currentPage(dialog);
-                        this.doSearch(dialog, background, searchValue, pageNum);
+                        this.doSearch(dialog, background, searchValue, 1);
                     }
                 }, 500);
             });
@@ -507,11 +505,6 @@ export default class MoreCoverPlugin extends Plugin {
         searchInput.focus();
         // 打开对话框时自动查询
         this.doSearch(dialog, background);
-    }
-
-    private currentPage(dialog: Dialog) {
-        const curPage = dialog.element.querySelector(".pmc-rp-page .pmc-rp-page-cur") as HTMLDivElement;
-        return curPage ? parseInt(curPage.innerHTML) : 1;
     }
 
     private doSearch(dialog: Dialog, background: Background, searchValue?: string, pageNum?: number) {

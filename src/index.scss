@@ -193,7 +193,8 @@
     height: 100%;
     z-index: 9999;
     background: rgba(0, 0, 0, 0.45);
-    opacity: 0.4;
+    opacity: 1;
+    border-radius: 3px;
 
     &-icon {
       position: relative;
