@@ -1,4 +1,4 @@
-import {Dialog, fetchPost, getFrontend, IObject, Lute, Plugin, showMessage} from "siyuan";
+import {Dialog, fetchPost, getFrontend, IObject, Plugin, showMessage} from "siyuan";
 import "./index.scss";
 
 const STORAGE_NAME = "more-cover-config";
@@ -19,9 +19,14 @@ interface UnsplashLinks {
     download_location: string;
 }
 
+interface UnsplashUserLinks {
+    html: string;
+}
+
 interface UnsplashUser {
     id: string;
     name: string;
+    links: UnsplashUserLinks;
 }
 
 interface UnsplashImage {
@@ -119,6 +124,7 @@ class UnsplashConfig extends Config {
     enable = false;
     pageApi = "https://api.unsplash.com/search/photos?page={{pageNum}}&per_page={{pageSize}}&query={{searchValue}}&client_id={{accessKey}}";
     pageSize = 30;
+    applicationName = "";
     accessKey = "";
 }
 
@@ -180,6 +186,10 @@ export default class MoreCoverPlugin extends Plugin {
             class="pmc-config_enable pmc-switch ${config.unsplash.enable ? "pmc-switch_check" : "pmc-switch_uncheck"}"/>      
         </div>
         <div class="pmc-config_line">
+            <label>Application Name:&nbsp;</label>
+            <input class="pmc-config-application-name" type="text" value="${config.unsplash.applicationName ?? ""}" style="flex: 1">        
+        </div>
+        <div class="pmc-config_line">
             <label>Access Key:&nbsp;</label>
             <input class="pmc-config_key" type="text" value="${config.unsplash.accessKey}" style="flex: 1">        
         </div>
@@ -228,36 +238,41 @@ export default class MoreCoverPlugin extends Plugin {
         });
         buttons[1].addEventListener("click", () => {
             const common = dialog.element.querySelector(".pmc-config_common");
-            // @ts-ignore
-            config.common.autoSearch = common.querySelector(".pmc-config_enable").checked;
+            config.common.autoSearch = (common.querySelector(".pmc-config_enable") as HTMLInputElement).checked;
 
             const unsplash = dialog.element.querySelector(".pmc-config_unsplash");
-            // @ts-ignore
-            config.unsplash.enable = unsplash.querySelector(".pmc-config_enable").checked;
-            // @ts-ignore
-            config.unsplash.accessKey = unsplash.querySelector(".pmc-config_key").value;
+            config.unsplash.enable = (unsplash.querySelector(".pmc-config_enable") as HTMLInputElement).checked;
+            config.unsplash.applicationName = (unsplash.querySelector(".pmc-config-application-name") as HTMLInputElement).value ?? "";
+            config.unsplash.accessKey = (unsplash.querySelector(".pmc-config_key") as HTMLInputElement).value;
 
             const pixabay = dialog.element.querySelector(".pmc-config_pixabay");
-            // @ts-ignore
-            config.pixabay.enable = pixabay.querySelector(".pmc-config_enable").checked;
-            // @ts-ignore
-            config.pixabay.key = pixabay.querySelector(".pmc-config_key").value;
+            config.pixabay.enable = (pixabay.querySelector(".pmc-config_enable") as HTMLInputElement).checked;
+            config.pixabay.key = (pixabay.querySelector(".pmc-config_key") as HTMLInputElement).value;
 
-            let allSuccess = true;
-            if (config.unsplash.enable && !config.unsplash.accessKey) {
-                allSuccess = false;
-                showMessage(this.i18n.unsplash.accessKeyNotNull);
-            }
-            if (config.pixabay.enable && !config.pixabay.key) {
-                allSuccess = false;
-                showMessage(this.i18n.pixabay.keyNotNull);
-            }
+            let allSuccess = this.validateConfig(config);
             if (!allSuccess) {
                 return;
             }
             this.saveData(STORAGE_NAME, config).then(r => console.log("保存配置成功", r));
             dialog.destroy();
         });
+    }
+
+    private validateConfig(config: Configs) {
+        let allSuccess = true;
+        if (config.unsplash.enable && !config.unsplash.applicationName) {
+            allSuccess = false;
+            showMessage(this.i18n.unsplash.applicationNameNotNull);
+        }
+        if (config.unsplash.enable && !config.unsplash.accessKey) {
+            allSuccess = false;
+            showMessage(this.i18n.unsplash.accessKeyNotNull);
+        }
+        if (config.pixabay.enable && !config.pixabay.key) {
+            allSuccess = false;
+            showMessage(this.i18n.pixabay.keyNotNull);
+        }
+        return allSuccess;
     }
 
     onLayoutReady() {
@@ -278,7 +293,7 @@ export default class MoreCoverPlugin extends Plugin {
         return this.data[STORAGE_NAME];
     }
 
-    private changeCover(event: Event, background: Background, dialog: Dialog, config: Config) {
+    private downloadCover(event: Event, background: Background, dialog: Dialog, config: Config) {
         const target = event.target as HTMLElement;
         const imageId = target.dataset.imageId;
         const url = target.dataset.downloadUrl;
@@ -288,54 +303,39 @@ export default class MoreCoverPlugin extends Plugin {
         dialog.element.querySelector(".pmc-change-loading").classList.remove("pmc-hide");
         // 设置文字：正在下载题头图，请稍候
         dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.downloadingCover}`;
+
+        // 需要再次请求
+        if (config.id == "unsplash") {
+            fetch(url)
+                .then(async response => {
+                    if (config.id == "unsplash") {
+                        const r = await response.json();
+                        const v = await fetch(r.url);
+                        format = this.convertFormat(config, r.url);
+                        return await v.blob();
+                    }
+                    format = this.convertFormat(config, response.url);
+                    return response.blob();
+                })
+                .then(blob => {
+                    this.changeCover(dialog, config, imageId, format, blob, background);
+                })
+                .catch(reason => {
+                    showMessage(reason, 5000, "error");
+                    console.log(reason);
+                    // 隐藏遮罩层
+                    dialog.element.querySelector(".pmc-change-loading").classList.add("pmc-hide");
+                });
+            return;
+        }
+
         fetch(url)
             .then(response => {
                 format = this.convertFormat(config, response.url);
                 return response.blob();
             })
             .then(blob => {
-                // 设置文字：正在上传图片到思源，请稍候
-                dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.uploadingCover}`;
-                // 上传资源文件
-                const fileName = `${config.id}-${imageId}.${format}`;
-
-                const fd = new FormData();
-                fd.append("assetsDirPath", "/assets/");
-                fd.append("file[]", blob, fileName);
-
-                console.log(`${this.i18n.pluginName}: 下载图片成功，开始上传到思源`);
-                fetchPost("/api/asset/upload", fd, resp => {
-                    const succMap = resp.data.succMap;
-                    console.log(`${this.i18n.pluginName}: 上传封面成功`, succMap);
-                    dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.settingCover}`;
-                    // 重新设置封面
-                    fetchPost("/api/attr/setBlockAttrs", {
-                        id: background.ial["id"],
-                        attrs: {
-                            "title-img": `background-image:url(${succMap[fileName]})`
-                        }
-                    }, r => {
-                        showMessage(`${this.i18n.pluginName}: ${this.i18n.setCoverSuccess}`);
-                        console.log(`${this.i18n.pluginName}: 设置封面成功`, r);
-                        // 更新封面
-                        background.ial["title-img"] = `background-image:url("${succMap[fileName]}")`;
-                        background.imgElement.src = `${succMap[fileName]}`;
-                        const img = background.ial["title-img"];
-                        background.imgElement.classList.remove("fn__none");
-                        // @ts-ignore
-                        background.imgElement.setAttribute("style", window.Lute.UnEscapeHTMLStr(img));
-                        const position = background.imgElement.style.backgroundPosition || background.imgElement.style.objectPosition;
-                        const url = background.imgElement.style.backgroundImage?.replace(/^url\(["']?/, "").replace(/["']?\)$/, "");
-                        background.imgElement.removeAttribute("style");
-                        background.imgElement.setAttribute("src", url);
-                        background.imgElement.style.objectPosition = position;
-                        background.element.querySelector('[data-type="position"]').classList.remove("fn__none");
-                        background.element.style.minHeight = "30vh";
-
-                        // 关闭 dialog
-                        dialog.destroy();
-                    });
-                });
+                this.changeCover(dialog, config, imageId, format, blob, background);
             })
             .catch(reason => {
                 showMessage(reason, 5000, "error");
@@ -343,6 +343,51 @@ export default class MoreCoverPlugin extends Plugin {
                 // 隐藏遮罩层
                 dialog.element.querySelector(".pmc-change-loading").classList.add("pmc-hide");
             });
+    }
+
+    private changeCover(dialog: Dialog, config: Config, imageId: string, format: string, blob: Blob, background: Background) {
+        // 设置文字：正在上传图片到思源，请稍候
+        dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.uploadingCover}`;
+        // 上传资源文件
+        const fileName = `${config.id}-${imageId}.${format}`;
+
+        const fd = new FormData();
+        fd.append("assetsDirPath", "/assets/");
+        fd.append("file[]", blob, fileName);
+
+        console.log(`${this.i18n.pluginName}: 下载图片成功，开始上传到思源`);
+        fetchPost("/api/asset/upload", fd, resp => {
+            const succMap = resp.data.succMap;
+            console.log(`${this.i18n.pluginName}: 上传封面成功`, succMap);
+            dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.settingCover}`;
+            // 重新设置封面
+            fetchPost("/api/attr/setBlockAttrs", {
+                id: background.ial["id"],
+                attrs: {
+                    "title-img": `background-image:url(${succMap[fileName]})`
+                }
+            }, r => {
+                showMessage(`${this.i18n.pluginName}: ${this.i18n.setCoverSuccess}`);
+                console.log(`${this.i18n.pluginName}: 设置封面成功`, r);
+                // 更新封面
+                background.ial["title-img"] = `background-image:url("${succMap[fileName]}")`;
+                background.imgElement.src = `${succMap[fileName]}`;
+                const img = background.ial["title-img"];
+                background.imgElement.classList.remove("fn__none");
+                // @ts-ignore
+                background.imgElement.setAttribute("style", window.Lute.UnEscapeHTMLStr(img));
+                const position = background.imgElement.style.backgroundPosition || background.imgElement.style.objectPosition;
+                const url = background.imgElement.style.backgroundImage?.replace(/^url\(["']?/, "").replace(/["']?\)$/, "");
+                background.imgElement.removeAttribute("style");
+                background.imgElement.setAttribute("src", url);
+                background.imgElement.style.objectPosition = position;
+                background.element.querySelector('[data-type="position"]').classList.remove("fn__none");
+                background.element.style.minHeight = "30vh";
+
+                // 关闭 dialog
+                dialog.destroy();
+            });
+        });
     }
 
     private showDialog(background: Background, enableConfigs: Config[]) {
@@ -499,7 +544,7 @@ export default class MoreCoverPlugin extends Plugin {
         fetch(url)
             .then(response => response.json())
             .then(rs => {
-                let pageInfo = this.convertResp(config, rs);
+                const pageInfo = this.convertResp(config, rs);
                 console.log("pageInfo", pageInfo);
                 this.showResult(dialog, background, config, pageInfo, pageNum);
                 // 隐藏遮罩层
@@ -522,7 +567,7 @@ export default class MoreCoverPlugin extends Plugin {
     private convertResp(config: Config, rs: any) {
         switch (config.id) {
             case "unsplash":
-                return this.convertUnsplashResp(rs as UnsplashResp);
+                return this.convertUnsplashResp(rs as UnsplashResp, config as UnsplashConfig);
             case "pixabay":
                 return this.convertPixabayResp(rs as PixabayResp);
             default:
@@ -576,7 +621,7 @@ export default class MoreCoverPlugin extends Plugin {
     by <a href="${value.htmlUrl}" title="${value.username}" target="_blank">${value.username}</a>
 </div>`;
             div.querySelector("img").addEventListener(this.getEventName(),
-                ev => this.changeCover(ev, background, dialog, config));
+                ev => this.downloadCover(ev, background, dialog, config));
             result.appendChild(div);
         });
 
@@ -644,7 +689,7 @@ export default class MoreCoverPlugin extends Plugin {
         this.doSearch(dialog, background, searchInput.value, pageNum);
     }
 
-    private convertUnsplashResp(response: UnsplashResp): PageInfo {
+    private convertUnsplashResp(response: UnsplashResp, config: UnsplashConfig): PageInfo {
         return {
             total: response.total,
             errors: response.errors,
@@ -652,9 +697,9 @@ export default class MoreCoverPlugin extends Plugin {
                 return {
                     id: value.id,
                     username: value.user.name,
-                    thumbUrl: value.urls.thumb,
-                    downloadUrl: value.links.download,
-                    htmlUrl: value.links.html,
+                    thumbUrl: `${value.urls.thumb}&utm_source=${config.applicationName}&utm_medium=referral`,
+                    downloadUrl: `${value.links.download_location}&client_id=${config.accessKey}`,
+                    htmlUrl: `${value.user.links.html}?utm_source=${config.applicationName}&utm_medium=referral`,
                     description: value.alt_description
                 };
             })
@@ -706,6 +751,10 @@ export default class MoreCoverPlugin extends Plugin {
      * @private
      */
     private configOrShowDialog(background: Background) {
+        if (!this.validateConfig(this.getConfig())) {
+            this.openSetting();
+            return;
+        }
         const enableConfigs = this.getEnableConfigs();
         const anyEnable = enableConfigs.length > 0;
         if (anyEnable) {

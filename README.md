@@ -15,7 +15,7 @@
 Some galleries may not be available due to network reasons and can be accelerated by configuring a proxy for SiYuan
 ![proxy.png](https://s2.loli.net/2023/08/21/b4CiLeZzFU7o5PH.png)
 
-## Apply for interfaces for each gallery
+## Apply for API for each gallery
 
 ### Apply Unsplash
 
@@ -37,3 +37,8 @@ Access address：https://pixabay.com/api/docs/
 ## v1.0.0
 
 * Support Unsplash and Pixabay
+
+## v1.0.1
+
+* Agent configuration description
+* Connect to the Unsplash API correctly
