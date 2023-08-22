@@ -42,3 +42,4 @@ Access address：https://pixabay.com/api/docs/
 
 * Agent configuration description
 * Connect to the Unsplash API correctly
+* pixabay support for language selection
