@@ -2,7 +2,7 @@
   "name": "more-cover",
   "author": "caohongliang92",
   "url": "https://github.com/caohongliang92/siyuan-plugin-more-cover",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "minAppVersion": "2.10.0",
   "backends": [
     "windows",
