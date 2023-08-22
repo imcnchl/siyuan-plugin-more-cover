@@ -179,7 +179,7 @@ export default class MoreCoverPlugin extends Plugin {
         <div class="pmc-config_line">
             <label>${this.i18n.autoSearch}:&nbsp;</label>
             <input type="checkbox" ${config.common.autoSearch ? "checked" : ""} 
-            class="pmc-config_enable pmc-switch ${config.common.autoSearch ? "pmc-switch_check" : "pmc-switch_uncheck"}"/>      
+            class="pmc-config-enable pmc-switch b3-switch fn__flex-center"/>      
         </div>
     </fieldset>
     <fieldset class="pmc-config_unsplash">
@@ -187,7 +187,7 @@ export default class MoreCoverPlugin extends Plugin {
         <div class="pmc-config_line">
             <label>${this.i18n.enable}:&nbsp;</label>
             <input type="checkbox" ${config.unsplash.enable ? "checked" : ""} 
-            class="pmc-config_enable pmc-switch ${config.unsplash.enable ? "pmc-switch_check" : "pmc-switch_uncheck"}"/>      
+                class="pmc-config-enable pmc-switch b3-switch fn__flex-center"/>      
         </div>
         <div class="pmc-config_line">
             <label>Application Name:&nbsp;</label>
@@ -195,18 +195,18 @@ export default class MoreCoverPlugin extends Plugin {
         </div>
         <div class="pmc-config_line">
             <label>Access Key:&nbsp;</label>
-            <input class="pmc-config_key" type="text" value="${config.unsplash.accessKey}" style="flex: 1">        
+            <input class="pmc-config-key" type="text" value="${config.unsplash.accessKey}" style="flex: 1">        
         </div>
     </fieldset>
-    <fieldset class="pmc-config_pixabay">
+    <fieldset class="pmc-config-pixabay">
         <legend>&nbsp;${config.pixabay.name}&nbsp;</legend>
         <div class="pmc-config_line">
             <label>${this.i18n.enable}:&nbsp;</label>
             <input type="checkbox" ${config.pixabay.enable ? "checked" : ""} 
-            class="pmc-config_enable pmc-switch ${config.pixabay.enable ? "pmc-switch_check" : "pmc-switch_uncheck"}"/>      
+                class="pmc-config-enable pmc-switch b3-switch fn__flex-center"/>      
         </div>
         <div class="pmc-config_line">
-            <label>Key:&nbsp;</label><input class="pmc-config_key" type="text" value="${config.pixabay.key}" style="flex: 1">        
+            <label>Key:&nbsp;</label><input class="pmc-config-key" type="text" value="${config.pixabay.key}" style="flex: 1">        
         </div>
     </fieldset>
 </div>        
@@ -221,20 +221,6 @@ export default class MoreCoverPlugin extends Plugin {
 </div>`,
             width: this.isMobile ? "92vw" : "520px",
         });
-        const allSwitch = dialog.element.querySelectorAll(".pmc-switch");
-        allSwitch.forEach((value) => {
-            value.addEventListener("change", evt => {
-                const target = evt.target as HTMLElement;
-                // @ts-ignore
-                if (target.checked) {
-                    target.classList.add("pmc-switch_check");
-                    target.classList.remove("pmc-switch_uncheck");
-                } else {
-                    target.classList.add("pmc-switch_uncheck");
-                    target.classList.remove("pmc-switch_check");
-                }
-            });
-        });
 
         const buttons = dialog.element.querySelectorAll(".b3-button");
         buttons[0].addEventListener("click", () => {
@@ -242,16 +228,16 @@ export default class MoreCoverPlugin extends Plugin {
         });
         buttons[1].addEventListener("click", () => {
             const common = dialog.element.querySelector(".pmc-config_common");
-            config.common.autoSearch = (common.querySelector(".pmc-config_enable") as HTMLInputElement).checked;
+            config.common.autoSearch = (common.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
 
             const unsplash = dialog.element.querySelector(".pmc-config_unsplash");
-            config.unsplash.enable = (unsplash.querySelector(".pmc-config_enable") as HTMLInputElement).checked;
+            config.unsplash.enable = (unsplash.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
             config.unsplash.applicationName = (unsplash.querySelector(".pmc-config-application-name") as HTMLInputElement).value ?? "";
-            config.unsplash.accessKey = (unsplash.querySelector(".pmc-config_key") as HTMLInputElement).value;
+            config.unsplash.accessKey = (unsplash.querySelector(".pmc-config-key") as HTMLInputElement).value;
 
-            const pixabay = dialog.element.querySelector(".pmc-config_pixabay");
-            config.pixabay.enable = (pixabay.querySelector(".pmc-config_enable") as HTMLInputElement).checked;
-            config.pixabay.key = (pixabay.querySelector(".pmc-config_key") as HTMLInputElement).value;
+            const pixabay = dialog.element.querySelector(".pmc-config-pixabay");
+            config.pixabay.enable = (pixabay.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
+            config.pixabay.key = (pixabay.querySelector(".pmc-config-key") as HTMLInputElement).value;
 
             const allSuccess = this.validateConfig(config);
             if (!allSuccess) {
@@ -303,10 +289,7 @@ export default class MoreCoverPlugin extends Plugin {
         const url = target.dataset.downloadUrl;
         let format = "png";
         console.log(`${this.i18n.pluginName}: 开始下载图片：`, url);
-        // 显示遮罩层
-        dialog.element.querySelector(".pmc-change-loading").classList.remove("pmc-hide");
-        // 设置文字：正在下载题头图，请稍候
-        dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.downloadingCover}`;
+        this.showLoading(dialog, this.i18n.downloadingCover, false);
 
         // 需要再次请求
         if (config.id == "unsplash") {
@@ -328,7 +311,7 @@ export default class MoreCoverPlugin extends Plugin {
                     showMessage(reason, 5000, "error");
                     console.log(reason);
                     // 隐藏遮罩层
-                    dialog.element.querySelector(".pmc-change-loading").classList.add("pmc-hide");
+                    this.hideLoading(dialog, false);
                 });
             return;
         }
@@ -345,13 +328,13 @@ export default class MoreCoverPlugin extends Plugin {
                 showMessage(reason, 5000, "error");
                 console.log(reason);
                 // 隐藏遮罩层
-                dialog.element.querySelector(".pmc-change-loading").classList.add("pmc-hide");
+                this.hideLoading(dialog, false);
             });
     }
 
     private changeCover(dialog: Dialog, config: Config, imageId: string, format: string, blob: Blob, background: Background) {
         // 设置文字：正在上传图片到思源，请稍候
-        dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.uploadingCover}`;
+        this.showLoading(dialog, this.i18n.uploadingCover, false);
         // 上传资源文件
         const fileName = `${config.id}-${imageId}.${format}`;
 
@@ -363,7 +346,7 @@ export default class MoreCoverPlugin extends Plugin {
         fetchPost("/api/asset/upload", fd, resp => {
             const succMap = resp.data.succMap;
             console.log(`${this.i18n.pluginName}: 上传封面成功`, succMap);
-            dialog.element.querySelector(".pmc-change-loading-info").innerHTML = `${this.i18n.settingCover}`;
+            this.showLoading(dialog, this.i18n.settingCover, false);
             // 重新设置封面
             fetchPost("/api/attr/setBlockAttrs", {
                 id: background.ial["id"],
@@ -426,15 +409,15 @@ export default class MoreCoverPlugin extends Plugin {
         const dialog = new Dialog({
             title: this.i18n.pluginName,
             content: `
-<div class="pmc-change-loading pmc-hide">
-    <div class="pmc-change-loading-icon">
+<div id="pmc-change-loading" class="pmc-loading pmc-hide">
+    <div class="pmc-loading-icon">
         <div></div>
         <div></div>
         <div></div>
     </div>    
-    <div class="pmc-change-loading-info"></div>    
+    <div class="pmc-loading-info"></div>    
 </div>
-<div class="b3-dialog__content" style="background: white; padding: 10px; display: flex; flex-direction: column;">
+<div class="b3-dialog__content" style="background: var(--b3-theme-background); padding: 10px; display: flex; flex-direction: column;">
     <div class="pmc-search">
         ${selectConfigHtml}
         ${pixabayLanguageHtml}
@@ -446,7 +429,13 @@ export default class MoreCoverPlugin extends Plugin {
     </div>
     <div class="fn__hr"></div>
     <div class="pmc-rp">
-        <div class="pmc-rp-loading pmc-hide">
+        <div id="pmc-search-loading" class="pmc-loading pmc-hide">
+            <div class="pmc-loading-icon">
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>    
+            <div class="pmc-loading-info"></div>    
         </div>
         <div class="pmc-rp-result"></div>
         <div class="pmc-rp-page"></div>
@@ -530,8 +519,7 @@ export default class MoreCoverPlugin extends Plugin {
         dialog.element.querySelector(".pmc-rp-result").innerHTML = "";
         dialog.element.querySelector(".pmc-rp-page").innerHTML = "";
         // 显示遮罩层
-        const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
-        mark.classList.remove("pmc-hide");
+        this.showLoading(dialog, this.i18n.searching, true);
         if (searchValue) {
             this.search(dialog, background, searchValue, pageNum);
         } else {
@@ -581,15 +569,13 @@ export default class MoreCoverPlugin extends Plugin {
                 console.log("pageInfo", pageInfo);
                 this.showResult(dialog, background, config, pageInfo, pageNum);
                 // 隐藏遮罩层
-                const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
-                mark.classList.add("pmc-hide");
+                this.hideLoading(dialog, true);
             })
             .catch(reason => {
                 showMessage(reason, 5000, "error");
                 console.log(reason);
                 // 隐藏遮罩层
-                const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
-                mark.classList.add("pmc-hide");
+                this.hideLoading(dialog, true);
             });
     }
 
@@ -668,7 +654,7 @@ export default class MoreCoverPlugin extends Plugin {
                 pageCount += 1;
             }
             console.log("total=", pageInfo.total, "pageCount=", pageCount);
-            // 限制一个展示 10 个按钮
+            // 限制一个分页列表只展示 10 个按钮
             const pageShow = 10;
             let startPage = Math.max(curPage - Math.floor(pageShow / 2), 1);
             const endPage = Math.min(startPage + pageShow - 1, pageCount);
@@ -683,18 +669,26 @@ export default class MoreCoverPlugin extends Plugin {
 
             for (let page = startPage; page <= endPage; page++) {
                 const btn = document.createElement("button");
-                btn.classList.add("pmc-rp-page-item");
+                btn.classList.add("b3-button");
+                btn.classList.add("b3-button--outline");
                 btn.type = "button";
                 btn.value = String(page);
                 btn.innerText = String(page);
-                if (curPage == page) {
-                    btn.classList.add("pmc-rp-page-cur");
-                    btn.disabled = true;
-                }
+
                 pageElement.append(btn);
-                btn.addEventListener("click", evt => {
-                    this.clickPageItem(dialog, background, evt);
-                });
+                if (page < endPage) {
+                    const space = document.createElement("div");
+                    space.classList.add("fn__space");
+                    pageElement.append(space);
+                }
+                if (curPage == page) {
+                    btn.classList.remove("b3-button--outline");
+                    btn.classList.add("pmc-rp-page-cur");
+                } else {
+                    btn.addEventListener("click", evt => {
+                        this.clickPageItem(dialog, background, evt);
+                    });
+                }
             }
 
             padding = document.createElement("div");
@@ -759,8 +753,28 @@ export default class MoreCoverPlugin extends Plugin {
     private random(dialog: Dialog, background: Background) {
         console.log("-------- random ---------", dialog, background);
         // 隐藏遮罩层
-        const mark = dialog.element.querySelector(".pmc-rp-loading") as HTMLDivElement;
-        mark.classList.add("pmc-hide");
+        this.hideLoading(dialog, true);
+    }
+
+    private showLoading(dialog: Dialog, msg: string, isSearch: boolean) {
+        const selectors = isSearch ? "#pmc-search-loading" : "#pmc-change-loading";
+        // const height =showHeader ?  "496px";
+
+        const loading = dialog.element.querySelector(selectors) as HTMLDivElement;
+        // loading.style.height = height;
+        // 显示遮罩层
+        loading.classList.remove("pmc-hide");
+        // 设置文字
+        loading.querySelector(".pmc-loading-info").innerHTML = msg;
+    }
+
+    private hideLoading(dialog: Dialog, isSearch: boolean) {
+        const selectors = isSearch ? "#pmc-search-loading" : "#pmc-change-loading";
+        // 因此遮罩层
+        const loading = dialog.element.querySelector(selectors);
+        loading.classList.add("pmc-hide");
+        // 移除文字
+        loading.querySelector(".pmc-loading-info").innerHTML = "";
     }
 
     private getEnableConfigs(): Config[] {
