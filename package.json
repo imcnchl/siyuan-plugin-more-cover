@@ -1,6 +1,6 @@
 {
   "name": "more-cover",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "思源笔记的插件：随机题头图",
   "main": ".src/index.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "build": "webpack --mode production"
   },
   "keywords": [],
-  "author": "caohongliang92",
+  "author": "imcnchl",
   "license": "MIT",
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "5.29.0",

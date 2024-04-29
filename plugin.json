@@ -1,9 +1,9 @@
 {
   "name": "more-cover",
-  "author": "caohongliang92",
-  "url": "https://github.com/caohongliang92/siyuan-plugin-more-cover",
-  "version": "1.0.4",
-  "minAppVersion": "2.10.0",
+  "author": "imcnchl",
+  "url": "https://github.com/imcnchl/siyuan-plugin-more-cover",
+  "version": "1.0.5",
+  "minAppVersion": "3.0.11",
   "backends": [
     "windows",
     "linux",
