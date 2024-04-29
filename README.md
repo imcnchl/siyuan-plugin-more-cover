@@ -1,4 +1,4 @@
-[中文](https://github.com/caohongliang92/siyuan-plugin-more-cover/blob/main/README_zh_CN.md)
+[中文](https://github.com/imcnchl/siyuan-plugin-more-cover/blob/main/README_zh_CN.md)
 
 # SiYuan Note - More Cover Plugin
 

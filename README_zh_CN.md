@@ -1,4 +1,4 @@
-[English](https://github.com/caohongliang92/siyuan-plugin-more-cover/blob/main/README.md)
+[English](https://github.com/imcnchl/siyuan-plugin-more-cover/blob/main/README.md)
 
 # 思源笔记-随机题头图插件
 
