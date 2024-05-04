@@ -810,7 +810,7 @@ export default class MoreCoverPlugin extends Plugin {
     private addChangeIconListener(event: CustomEvent) {
         const background = event.detail.background as Background;
         // 获取“随机题头图” 按钮
-        const buttons = background.element.querySelectorAll("span[data-type=\"random\"]");
+        const buttons = background.element.querySelectorAll("[data-type=\"random\"]")
         buttons.forEach((button) => {
             button.addEventListener(this.getEventName(), ev => {
                 this.configOrShowDialog(background);
