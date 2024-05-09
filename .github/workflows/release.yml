@@ -15,8 +15,8 @@ jobs:
 
       - name: Run script to package files
         run: |
-          chmod +x script/make-zip.sh
-          ./script/make-zip.sh
+          npm install
+          npm run build
 
       - name: Release
         uses: ncipollo/release-action@v1
