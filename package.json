@@ -1,6 +1,6 @@
 {
   "name": "more-cover",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "思源笔记的插件：随机题头图",
   "main": ".src/index.js",
   "scripts": {
@@ -21,7 +21,7 @@
     "mini-css-extract-plugin": "2.3.0",
     "sass": "^1.62.1",
     "sass-loader": "^12.6.0",
-    "siyuan": "0.8.0",
+    "siyuan": "0.9.8",
     "tslib": "2.4.0",
     "typescript": "4.7.4",
     "webpack": "^5.76.0",

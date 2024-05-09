@@ -35,6 +35,14 @@
 
 # 变更记录
 
+## v1.0.7
+
+* 修复已存在题头图时无法点击刷新图标唤起插件
+* 修复下载时的loading图层显示超出 Dialog 的body
+* 替换题头图时使用SiYuan自带的 render 方法
+* 监听 loaded-protyle 事件替换为 loaded-protyle-static 事件
+* 刷新图标的文案由“内置”调整为“随机题头图”
+
 ## v1.0.6
 
 * 兼容 3.0.12 感谢 @code-lixm

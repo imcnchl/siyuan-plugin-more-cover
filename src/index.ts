@@ -1,4 +1,4 @@
-import {Dialog, fetchPost, getFrontend, IObject, Plugin, showMessage} from "siyuan";
+import {Dialog, fetchPost, getFrontend, IObject, IProtyle, Plugin, showMessage} from "siyuan";
 import "./index.scss";
 
 const STORAGE_NAME = "more-cover-config";
@@ -35,7 +35,7 @@ interface UnsplashImage {
     alt_description: string;
     urls: UnsplashUrls;
     links: UnsplashLinks;
-    user: UnsplashUser
+    user: UnsplashUser;
 }
 
 interface UnsplashResp {
@@ -89,7 +89,7 @@ interface ImageInfo {
 interface PageInfo {
     total: number;
     items: ImageInfo[];
-    errors: string[]
+    errors: string[];
 }
 
 interface Background {
@@ -98,7 +98,9 @@ interface Background {
     imgElement: HTMLImageElement;
     iconElement: HTMLElement;
     tagsElement: HTMLElement;
-    transparentData: string
+    transparentData: string;
+
+    render(ial: IObject, rootId: string): void;
 }
 
 class Config {
@@ -274,7 +276,7 @@ export default class MoreCoverPlugin extends Plugin {
         });
 
         console.log(`${this.i18n.pluginName} is loaded`);
-        this.eventBus.on("loaded-protyle", event => {
+        this.eventBus.on("loaded-protyle-static", event => {
             this.addChangeIconListener(event);
         });
     }
@@ -283,7 +285,7 @@ export default class MoreCoverPlugin extends Plugin {
         return this.data[STORAGE_NAME];
     }
 
-    private downloadCover(event: Event, background: Background, dialog: Dialog, config: Config) {
+    private downloadCover(event: Event, protyle: IProtyle, dialog: Dialog, config: Config) {
         const target = event.target as HTMLElement;
         const imageId = target.dataset.imageId;
         const url = target.dataset.downloadUrl;
@@ -305,7 +307,7 @@ export default class MoreCoverPlugin extends Plugin {
                     return response.blob();
                 })
                 .then(blob => {
-                    this.changeCover(dialog, config, imageId, format, blob, background);
+                    this.changeCover(dialog, config, imageId, format, blob, protyle);
                 })
                 .catch(reason => {
                     showMessage(reason, 5000, "error");
@@ -322,7 +324,7 @@ export default class MoreCoverPlugin extends Plugin {
                 return response.blob();
             })
             .then(blob => {
-                this.changeCover(dialog, config, imageId, format, blob, background);
+                this.changeCover(dialog, config, imageId, format, blob, protyle);
             })
             .catch(reason => {
                 showMessage(reason, 5000, "error");
@@ -332,7 +334,8 @@ export default class MoreCoverPlugin extends Plugin {
             });
     }
 
-    private changeCover(dialog: Dialog, config: Config, imageId: string, format: string, blob: Blob, background: Background) {
+    private changeCover(dialog: Dialog, config: Config, imageId: string, format: string, blob: Blob, protyle: IProtyle) {
+        const background = protyle.background;
         // 设置文字：正在上传图片到思源，请稍候
         this.showLoading(dialog, this.i18n.uploadingCover, false);
         // 上传资源文件
@@ -358,18 +361,8 @@ export default class MoreCoverPlugin extends Plugin {
                 console.log(`${this.i18n.pluginName}: 设置封面成功`, r);
                 // 更新封面
                 background.ial["title-img"] = `background-image:url("${succMap[fileName]}")`;
-                background.imgElement.src = `${succMap[fileName]}`;
-                const img = background.ial["title-img"];
-                background.imgElement.classList.remove("fn__none");
                 // @ts-ignore
-                background.imgElement.setAttribute("style", window.Lute.UnEscapeHTMLStr(img));
-                const position = background.imgElement.style.backgroundPosition || background.imgElement.style.objectPosition;
-                const url = background.imgElement.style.backgroundImage?.replace(/^url\(["']?/, "").replace(/["']?\)$/, "");
-                background.imgElement.removeAttribute("style");
-                background.imgElement.setAttribute("src", url);
-                background.imgElement.style.objectPosition = position;
-                background.element.querySelector('[data-type="position"]').classList.remove("fn__none");
-                background.element.style.minHeight = "30vh";
+                background.render(background.ial, protyle.block.rootID);
 
                 // 关闭 dialog
                 dialog.destroy();
@@ -377,7 +370,7 @@ export default class MoreCoverPlugin extends Plugin {
         });
     }
 
-    private showDialog(background: Background, enableConfigs: Config[]) {
+    private showDialog(protyle: IProtyle, enableConfigs: Config[]) {
         const config = this.getConfig();
 
         console.log(enableConfigs);
@@ -444,6 +437,9 @@ export default class MoreCoverPlugin extends Plugin {
             width: this.isMobile ? "92vw" : "600px",
             height: "540px",
         });
+        const body = dialog.element.querySelector(".b3-dialog__body") as HTMLDivElement;
+        // @ts-ignore
+        body.style = "position: relative;";
 
         // 绑定事件
         const searchInput = dialog.element.querySelector(".pmc-search-input") as HTMLInputElement;
@@ -485,7 +481,7 @@ export default class MoreCoverPlugin extends Plugin {
         if (!config.common.autoSearch) {
             searchBtn.addEventListener("click", () => {
                 const searchValue = searchInput.value;
-                this.doSearch(dialog, background, searchValue, 1);
+                this.doSearch(dialog, protyle, searchValue, 1);
             });
         } else {
             let lastTime = 0;
@@ -496,7 +492,7 @@ export default class MoreCoverPlugin extends Plugin {
                 // 延时查询：0.5秒后没有输入则进行查询
                 setTimeout(() => {
                     if (curTime == lastTime) {
-                        this.doSearch(dialog, background, searchValue, 1);
+                        this.doSearch(dialog, protyle, searchValue, 1);
                     }
                 }, 500);
             });
@@ -504,19 +500,19 @@ export default class MoreCoverPlugin extends Plugin {
         // 每次打开都进行焦点
         searchInput.focus();
         // 打开对话框时自动查询
-        this.doSearch(dialog, background);
+        this.doSearch(dialog, protyle);
     }
 
-    private doSearch(dialog: Dialog, background: Background, searchValue?: string, pageNum?: number) {
+    private doSearch(dialog: Dialog, protyle: IProtyle, searchValue?: string, pageNum?: number) {
         // 清空结果
         dialog.element.querySelector(".pmc-rp-result").innerHTML = "";
         dialog.element.querySelector(".pmc-rp-page").innerHTML = "";
         // 显示遮罩层
         this.showLoading(dialog, this.i18n.searching, true);
         if (searchValue) {
-            this.search(dialog, background, searchValue, pageNum);
+            this.search(dialog, protyle, searchValue, pageNum);
         } else {
-            this.random(dialog, background);
+            this.random(dialog);
         }
     }
 
@@ -545,12 +541,12 @@ export default class MoreCoverPlugin extends Plugin {
     /**
      * 进行搜索
      * @param dialog 对话框
-     * @param background 封面相关的数据
+     * @param protyle protyle
      * @param searchValue 搜索关键字
      * @param pageNum
      * @private
      */
-    private search(dialog: Dialog, background: Background, searchValue: string, pageNum?: number) {
+    private search(dialog: Dialog, protyle: IProtyle, searchValue: string, pageNum?: number) {
         // 获取当前配置
         const config = this.getActiveConfig(dialog);
         const url = this.getPageApi(config, searchValue, pageNum);
@@ -560,7 +556,7 @@ export default class MoreCoverPlugin extends Plugin {
             .then(rs => {
                 const pageInfo = this.convertResp(config, rs);
                 console.log("pageInfo", pageInfo);
-                this.showResult(dialog, background, config, pageInfo, pageNum);
+                this.showResult(dialog, protyle, config, pageInfo, pageNum);
                 // 隐藏遮罩层
                 this.hideLoading(dialog, true);
             })
@@ -605,7 +601,7 @@ export default class MoreCoverPlugin extends Plugin {
 
     }
 
-    private showResult(dialog: Dialog, background: Background, config: Config, pageInfo: PageInfo, curPage: number) {
+    private showResult(dialog: Dialog, protyle: IProtyle, config: Config, pageInfo: PageInfo, curPage: number) {
         if (pageInfo.errors?.length > 0) {
             showMessage(pageInfo.errors.join("\n"), 5000, "error");
             return;
@@ -633,7 +629,7 @@ export default class MoreCoverPlugin extends Plugin {
     by <a href="${value.htmlUrl}" title="${value.username}" target="_blank">${value.username}</a>
 </div>`;
             div.querySelector("img").addEventListener(this.getEventName(),
-                ev => this.downloadCover(ev, background, dialog, config));
+                ev => this.downloadCover(ev, protyle, dialog, config));
             result.appendChild(div);
         });
 
@@ -679,7 +675,7 @@ export default class MoreCoverPlugin extends Plugin {
                     btn.classList.add("pmc-rp-page-cur");
                 } else {
                     btn.addEventListener("click", evt => {
-                        this.clickPageItem(dialog, background, evt);
+                        this.clickPageItem(dialog, protyle, evt);
                     });
                 }
             }
@@ -698,7 +694,7 @@ export default class MoreCoverPlugin extends Plugin {
         }
     }
 
-    private clickPageItem(dialog: Dialog, background: Background, evt: MouseEvent) {
+    private clickPageItem(dialog: Dialog, protyle: IProtyle, evt: MouseEvent) {
         console.log("click", evt);
         const button = evt.target as HTMLButtonElement;
         const pageNum = parseInt(button.value);
@@ -706,7 +702,7 @@ export default class MoreCoverPlugin extends Plugin {
 
         const searchInput = dialog.element.querySelector(".pmc-search-input") as HTMLInputElement;
 
-        this.doSearch(dialog, background, searchInput.value, pageNum);
+        this.doSearch(dialog, protyle, searchInput.value, pageNum);
     }
 
     private convertUnsplashResp(response: UnsplashResp, config: UnsplashConfig): PageInfo {
@@ -743,8 +739,7 @@ export default class MoreCoverPlugin extends Plugin {
         };
     }
 
-    private random(dialog: Dialog, background: Background) {
-        console.log("-------- random ---------", dialog, background);
+    private random(dialog: Dialog) {
         // 隐藏遮罩层
         this.hideLoading(dialog, true);
     }
@@ -790,7 +785,7 @@ export default class MoreCoverPlugin extends Plugin {
      * 配置或直接打开对话框
      * @private
      */
-    private configOrShowDialog(background: Background) {
+    private configOrShowDialog(protyle: IProtyle) {
         if (!this.validateConfig(this.getConfig())) {
             this.openSetting();
             return;
@@ -799,7 +794,7 @@ export default class MoreCoverPlugin extends Plugin {
         const anyEnable = enableConfigs.length > 0;
         if (anyEnable) {
             // 已有配置文件，直接打开对话框
-            this.showDialog(background, enableConfigs);
+            this.showDialog(protyle, enableConfigs);
             return;
         }
         // 打开配置对话框
@@ -808,12 +803,15 @@ export default class MoreCoverPlugin extends Plugin {
     }
 
     private addChangeIconListener(event: CustomEvent) {
-        const background = event.detail.background as Background;
+        const protyle = event.detail.protyle;
+        const background = protyle.background as Background;
+        const showBtn = background.element.querySelectorAll("[data-type=\"show-random\"]")[0];
+        showBtn.setAttribute("aria-label", "随机题头图");
         // 获取“随机题头图” 按钮
-        const buttons = background.element.querySelectorAll("[data-type=\"random\"]")
+        const buttons = background.element.querySelectorAll("[data-type=\"random\"],[data-type=\"show-random\"]");
         buttons.forEach((button) => {
             button.addEventListener(this.getEventName(), ev => {
-                this.configOrShowDialog(background);
+                this.configOrShowDialog(protyle);
                 ev.preventDefault();
                 ev.stopPropagation();
             });
