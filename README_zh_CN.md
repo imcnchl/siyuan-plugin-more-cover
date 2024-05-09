@@ -2,6 +2,8 @@
 
 # 思源笔记-随机题头图插件
 
+<font color="red">**注意：首次使用或更新插件后需要重启SiYuan，让插件生效**</font>
+
 ## 配置
 
 1. 打开配置页面 ![open_config1.png](https://s2.loli.net/2023/08/21/NO6gTbWQZPHAuaI.png)

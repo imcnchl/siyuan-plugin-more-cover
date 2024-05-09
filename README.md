@@ -2,6 +2,8 @@
 
 # SiYuan Note - More Cover Plugin
 
+<font color="red">**Note: After using or updating the plugin for the first time, you need to restart SiYuan for the plugin to take effect**</font>
+
 ## Config
 
 1. Open the configuration page ![open_config1.png](https://s2.loli.net/2023/08/21/NO6gTbWQZPHAuaI.png)
