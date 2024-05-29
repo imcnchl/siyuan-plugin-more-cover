@@ -1,96 +1,9 @@
 import {Dialog, fetchPost, getFrontend, IObject, IProtyle, Plugin, showMessage} from "siyuan";
 import "./index.scss";
-
-const STORAGE_NAME = "more-cover-config";
-
-interface UnsplashUrls {
-    raw: string;
-    full: string;
-    regular: string;
-    small: string;
-    thumb: string;
-    small_s3: string;
-}
-
-interface UnsplashLinks {
-    self: string;
-    html: string;
-    download: string;
-    download_location: string;
-}
-
-interface UnsplashUserLinks {
-    html: string;
-}
-
-interface UnsplashUser {
-    id: string;
-    name: string;
-    links: UnsplashUserLinks;
-}
-
-interface UnsplashImage {
-    id: string;
-    description: string;
-    alt_description: string;
-    urls: UnsplashUrls;
-    links: UnsplashLinks;
-    user: UnsplashUser;
-}
-
-interface UnsplashResp {
-    total: number;
-    total_pages: number;
-    results: UnsplashImage[];
-    errors: string[];
-}
-
-export interface PixabayHit {
-    id: number;
-    pageURL: string;
-    type: string;
-    tags: string;
-    previewURL: string;
-    previewWidth: number;
-    previewHeight: number;
-    webformatURL: string;
-    webformatWidth: number;
-    webformatHeight: number;
-    imageURL: string;
-    largeImageURL: string;
-    imageWidth: number;
-    imageHeight: number;
-    imageSize: number;
-    views: number;
-    downloads: number;
-    collections: number;
-    likes: number;
-    comments: number;
-    user_id: number;
-    user: string;
-    userImageURL: string;
-}
-
-export interface PixabayResp {
-    total: number;
-    totalHits: number;
-    hits: PixabayHit[];
-}
-
-interface ImageInfo {
-    id: string;
-    username: string;
-    thumbUrl: string;
-    downloadUrl: string;
-    htmlUrl: string;
-    description: string;
-}
-
-interface PageInfo {
-    total: number;
-    items: ImageInfo[];
-    errors: string[];
-}
+import {UnsplashConfig} from "./covers/UnsplashProvider";
+import {PixabayConfig} from "./covers/PixabayProvider";
+import {Cover, CoverProvider, CoverProviderConfig, PageResult} from "./covers/CoverProvider";
+import {covers} from "./covers/CoverRegister";
 
 interface Background {
     element: HTMLElement;
@@ -101,43 +14,6 @@ interface Background {
     transparentData: string;
 
     render(ial: IObject, rootId: string): void;
-}
-
-class Config {
-    /**
-     * 需要和 Configs 的 key 名称一致
-     */
-    id: string;
-    name: string;
-    enable: boolean;
-    /**
-     * 分页查询图片的接口地址
-     */
-    pageApi: string;
-    /**
-     * 每页大小
-     */
-    pageSize: number;
-}
-
-class UnsplashConfig extends Config {
-    id = "unsplash";
-    name = "Unsplash";
-    enable = false;
-    pageApi = "https://api.unsplash.com/search/photos?page={{pageNum}}&per_page={{pageSize}}&query={{searchValue}}&client_id={{accessKey}}";
-    pageSize = 30;
-    applicationName = "";
-    accessKey = "";
-}
-
-class PixabayConfig extends Config {
-    id = "pixabay";
-    name = "Pixabay";
-    enable = false;
-    pageApi = "https://pixabay.com/api/?key={{key}}&q={{searchValue}}&lang={{language}}&page={{pageNum}}&per_page={{pageSize}}";
-    pageSize = 30;
-    key = "";
-    language = "en";
 }
 
 class Configs {
@@ -156,10 +32,10 @@ export default class MoreCoverPlugin extends Plugin {
         "zh": `${this.i18n.languages.zh}`,
         "en": `${this.i18n.languages.en}`
     };
+    private providers: Map<string, CoverProvider<any>> = new Map();
+    private storage_name = "more-cover-config";
 
     onload() {
-        this.data[STORAGE_NAME] = new Configs();
-
         const frontEnd = getFrontend();
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
 
@@ -241,36 +117,21 @@ export default class MoreCoverPlugin extends Plugin {
             config.pixabay.enable = (pixabay.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
             config.pixabay.key = (pixabay.querySelector(".pmc-config-key") as HTMLInputElement).value;
 
-            const allSuccess = this.validateConfig(config);
+            const [allSuccess, msg] = this.validateConfig(config);
             if (!allSuccess) {
+                showMessage(msg);
                 return;
             }
-            this.saveData(STORAGE_NAME, config).then(r => console.log("保存配置成功", r));
+            this.saveData(this.storage_name, config).then(r => console.log("保存配置成功", r));
             dialog.destroy();
         });
     }
 
-    private validateConfig(config: Configs) {
-        let allSuccess = true;
-        if (config.unsplash.enable && !config.unsplash.applicationName) {
-            allSuccess = false;
-            showMessage(this.i18n.unsplash.applicationNameNotNull);
-        }
-        if (config.unsplash.enable && !config.unsplash.accessKey) {
-            allSuccess = false;
-            showMessage(this.i18n.unsplash.accessKeyNotNull);
-        }
-        if (config.pixabay.enable && !config.pixabay.key) {
-            allSuccess = false;
-            showMessage(this.i18n.pixabay.keyNotNull);
-        }
-        return allSuccess;
-    }
-
     onLayoutReady() {
-        this.loadData(STORAGE_NAME).then(r => {
+        this.loadData(this.storage_name).then(r => {
+            console.log(`loadData ${this.i18n.pluginName}`, r);
             if (r == "") {
-                this.saveData(STORAGE_NAME, new Configs())
+                this.saveData(this.storage_name, new Configs())
                     .then(() => console.log(`初始化${this.i18n.pluginName}配置完成`));
             }
         });
@@ -281,69 +142,52 @@ export default class MoreCoverPlugin extends Plugin {
         });
     }
 
-    private getConfig(): Configs {
-        return this.data[STORAGE_NAME];
+    private convertToInstance<T>(classType: new (...args: any[]) => T) {
+        return function (object: any) {
+            return new classType(object);
+        };
     }
 
-    private downloadCover(event: Event, protyle: IProtyle, dialog: Dialog, config: Config) {
+    private getConfig(): Configs {
+        const value = this.data[this.storage_name] as Configs;
+        console.log("-----------------------START");
+        console.log(value);
+        console.log(typeof value.unsplash);
+        console.log(typeof new Configs().unsplash);
+
+
+        
+        console.log("-----------------------END");
+        return value || new Configs();
+    }
+
+    private downloadCover(event: Event, protyle: IProtyle, dialog: Dialog, provider: CoverProvider<any>) {
         const target = event.target as HTMLElement;
-        const imageId = target.dataset.imageId;
         const url = target.dataset.downloadUrl;
-        let format = "png";
         console.log(`${this.i18n.pluginName}: 开始下载图片：`, url);
         this.showLoading(dialog, this.i18n.downloadingCover, false);
 
-        // 需要再次请求
-        if (config.id == "unsplash") {
-            fetch(url)
-                .then(async response => {
-                    if (config.id == "unsplash") {
-                        const r = await response.json();
-                        const v = await fetch(r.url);
-                        format = this.convertFormat(config, r.url);
-                        return await v.blob();
-                    }
-                    format = this.convertFormat(config, response.url);
-                    return response.blob();
-                })
-                .then(blob => {
-                    this.changeCover(dialog, config, imageId, format, blob, protyle);
-                })
-                .catch(reason => {
-                    showMessage(reason, 5000, "error");
-                    console.log(reason);
-                    // 隐藏遮罩层
-                    this.hideLoading(dialog, false);
-                });
-            return;
-        }
-
-        fetch(url)
-            .then(response => {
-                format = this.convertFormat(config, response.url);
-                return response.blob();
-            })
-            .then(blob => {
-                this.changeCover(dialog, config, imageId, format, blob, protyle);
-            })
-            .catch(reason => {
-                showMessage(reason, 5000, "error");
-                console.log(reason);
-                // 隐藏遮罩层
-                this.hideLoading(dialog, false);
-            });
+        provider.downloadCover(event).then(cover => {
+            console.log("cover", cover);
+            this.changeCover(dialog, provider, cover, protyle);
+        }).catch(reason => {
+            showMessage(reason, 5000, "error");
+            console.log(reason);
+            // 隐藏遮罩层
+            this.hideLoading(dialog, false);
+        });
     }
 
-    private changeCover(dialog: Dialog, config: Config, imageId: string, format: string, blob: Blob, protyle: IProtyle) {
+    private changeCover(dialog: Dialog, provider: CoverProvider<any>, cover: Cover, protyle: IProtyle) {
         const background = protyle.background;
         // 设置文字：正在上传图片到思源，请稍候
         this.showLoading(dialog, this.i18n.uploadingCover, false);
         // 上传资源文件
-        const fileName = `${config.id}-${imageId}.${format}`;
+        const fileName = `${provider.config.id}-${cover.id}.${cover.format}`;
 
         const fd = new FormData();
         fd.append("assetsDirPath", "/assets/");
-        fd.append("file[]", blob, fileName);
+        fd.append("file[]", cover.blob, fileName);
 
         console.log(`${this.i18n.pluginName}: 下载图片成功，开始上传到思源`);
         fetchPost("/api/asset/upload", fd, resp => {
@@ -370,19 +214,18 @@ export default class MoreCoverPlugin extends Plugin {
         });
     }
 
-    private showDialog(protyle: IProtyle, enableConfigs: Config[]) {
+    private showDialog(protyle: IProtyle) {
         const config = this.getConfig();
 
-        console.log(enableConfigs);
-        let selectedId = enableConfigs[0].id;
+        let selectedId = this.providers.keys().next().value as string;
         let selectConfigHtml = "";
-        if (enableConfigs.length > 1) {
+        if (this.providers.size > 1) {
             selectConfigHtml += "<select class=\"pmc-search-select\">";
-            enableConfigs.forEach((c) => {
-                if (c.id == config.common.selectedId) {
-                    selectedId = c.id;
+            this.providers.forEach(provider => {
+                if (provider.config.id == config.common.selectedId) {
+                    selectedId = provider.config.id;
                 }
-                selectConfigHtml += `<option value="${c.id}" ${c.id == config.common.selectedId ? "selected" : ""}>${c.name}</option>`;
+                selectConfigHtml += `<option value="${provider.config.id}" ${provider.config.id == config.common.selectedId ? "selected" : ""}>${provider.config.name}</option>`;
             });
             selectConfigHtml += "</select>";
         }
@@ -455,7 +298,7 @@ export default class MoreCoverPlugin extends Plugin {
             searchInput.dispatchEvent(new InputEvent("input"));
             searchBtn?.dispatchEvent(new Event("click"));
             config.common.selectedId = id;
-            this.saveData(STORAGE_NAME, config).then(r => console.log("保存下拉框成功", r));
+            this.saveData(this.storage_name, config).then(r => console.log("保存下拉框成功", r));
             if (id != "pixabay") {
                 pixabayLanguageSelect?.classList.add("pmc-hide");
             } else {
@@ -473,7 +316,7 @@ export default class MoreCoverPlugin extends Plugin {
             searchInput.dispatchEvent(new InputEvent("input"));
             searchBtn?.dispatchEvent(new Event("click"));
             config.pixabay.language = id;
-            this.saveData(STORAGE_NAME, config).then(r => console.log("保存下拉框成功", r));
+            this.saveData(this.storage_name, config).then(r => console.log("保存下拉框成功", r));
             // 切换下拉框后也需要焦点
             searchInput.focus();
         });
@@ -516,26 +359,14 @@ export default class MoreCoverPlugin extends Plugin {
         }
     }
 
-    private getActiveConfig(dialog: Dialog): Config {
+    private getActiveProvider(dialog: Dialog): CoverProvider<any> {
         const select = dialog.element.querySelector(".pmc-search-select") as HTMLSelectElement;
         if (select) {
             const id = select.options[select.selectedIndex].value;
-            const config = this.getConfig();
-            // @ts-ignore
-            return config[id] as Config;
+            return this.providers.get(id);
         }
-        return this.getEnableConfigs()[0];
-    }
-
-    private getPageApi(config: Config, searchValue: string, pageNum: number): string {
-        let api = config.pageApi;
-        Object.keys(config).forEach(value => {
-            // @ts-ignore
-            api = api.replace("{{" + value + "}}", config[value]);
-        });
-        api = api.replace("{{pageNum}}", String(pageNum))
-            .replace("{{searchValue}}", searchValue);
-        return api;
+        this.reloadEnabledProviders();
+        return this.providers.values().next().value;
     }
 
     /**
@@ -548,60 +379,21 @@ export default class MoreCoverPlugin extends Plugin {
      */
     private search(dialog: Dialog, protyle: IProtyle, searchValue: string, pageNum?: number) {
         // 获取当前配置
-        const config = this.getActiveConfig(dialog);
-        const url = this.getPageApi(config, searchValue, pageNum);
-        console.log(url);
-        fetch(url)
-            .then(response => response.json())
-            .then(rs => {
-                const pageInfo = this.convertResp(config, rs);
-                console.log("pageInfo", pageInfo);
-                this.showResult(dialog, protyle, config, pageInfo, pageNum);
-                // 隐藏遮罩层
-                this.hideLoading(dialog, true);
-            })
-            .catch(reason => {
-                showMessage(reason, 5000, "error");
-                console.log(reason);
-                // 隐藏遮罩层
-                this.hideLoading(dialog, true);
-            });
+        const provider = this.getActiveProvider(dialog);
+        provider.searchCovers(searchValue, pageNum).then(pageInfo => {
+            console.log("pageInfo", pageInfo);
+            this.showResult(dialog, protyle, provider, pageInfo);
+            // 隐藏遮罩层
+            this.hideLoading(dialog, true);
+        }).catch(reason => {
+            showMessage(reason, 5000, "error");
+            console.log(reason);
+            // 隐藏遮罩层
+            this.hideLoading(dialog, true);
+        });
     }
 
-    /**
-     * 转换分页对象，新增配置时需要调整这里
-     * @private
-     */
-    private convertResp(config: Config, rs: any) {
-        switch (config.id) {
-            case "unsplash":
-                return this.convertUnsplashResp(rs as UnsplashResp, config as UnsplashConfig);
-            case "pixabay":
-                return this.convertPixabayResp(rs as PixabayResp);
-            default:
-                throw new Error(`不支持 ${config.id} - ${config.name}`);
-        }
-    }
-
-    /**
-     * 获取文件扩展名，新增配置时需要调整这里
-     * @private
-     */
-    private convertFormat(config: Config, url: string): string {
-        switch (config.id) {
-            case "unsplash": {
-                const format = url.substring(url.indexOf("fm=") + 3);
-                return format.substring(0, format.indexOf("&"));
-            }
-            case "pixabay":
-            default: {
-                return url.substring(url.lastIndexOf(".") + 1);
-            }
-        }
-
-    }
-
-    private showResult(dialog: Dialog, protyle: IProtyle, config: Config, pageInfo: PageInfo, curPage: number) {
+    private showResult(dialog: Dialog, protyle: IProtyle, provider: CoverProvider<any>, pageInfo: PageResult) {
         if (pageInfo.errors?.length > 0) {
             showMessage(pageInfo.errors.join("\n"), 5000, "error");
             return;
@@ -629,7 +421,9 @@ export default class MoreCoverPlugin extends Plugin {
     by <a href="${value.htmlUrl}" title="${value.username}" target="_blank">${value.username}</a>
 </div>`;
             div.querySelector("img").addEventListener(this.getEventName(),
-                ev => this.downloadCover(ev, protyle, dialog, config));
+                ev => {
+                    this.downloadCover(ev, protyle, dialog, provider);
+                });
             result.appendChild(div);
         });
 
@@ -638,14 +432,11 @@ export default class MoreCoverPlugin extends Plugin {
         if (pageInfo.total) {
             pageElement.classList.remove("pmc-hide");
             // 进行分页
-            let pageCount = Math.floor(pageInfo.total / config.pageSize);
-            if (pageInfo.total % config.pageSize != 0) {
-                pageCount += 1;
-            }
+            const pageCount = pageInfo.totalPageCount();
             console.log("total=", pageInfo.total, "pageCount=", pageCount);
             // 限制一个分页列表只展示 10 个按钮
             const pageShow = 10;
-            let startPage = Math.max(curPage - Math.floor(pageShow / 2), 1);
+            let startPage = Math.max(pageInfo.pageNum - Math.floor(pageShow / 2), 1);
             const endPage = Math.min(startPage + pageShow - 1, pageCount);
             if (endPage - startPage < (pageShow - 1)) {
                 startPage = Math.max(endPage - pageShow + 1, 1);
@@ -670,7 +461,7 @@ export default class MoreCoverPlugin extends Plugin {
                     space.classList.add("fn__space");
                     pageElement.append(space);
                 }
-                if (curPage == page) {
+                if (pageInfo.pageNum == page) {
                     btn.classList.remove("b3-button--outline");
                     btn.classList.add("pmc-rp-page-cur");
                 } else {
@@ -705,40 +496,6 @@ export default class MoreCoverPlugin extends Plugin {
         this.doSearch(dialog, protyle, searchInput.value, pageNum);
     }
 
-    private convertUnsplashResp(response: UnsplashResp, config: UnsplashConfig): PageInfo {
-        return {
-            total: response.total,
-            errors: response.errors,
-            items: response.results?.map(value => {
-                return {
-                    id: value.id,
-                    username: value.user.name,
-                    thumbUrl: `${value.urls.thumb}&utm_source=${config.applicationName}&utm_medium=referral`,
-                    downloadUrl: `${value.links.download_location}&client_id=${config.accessKey}`,
-                    htmlUrl: `${value.user.links.html}?utm_source=${config.applicationName}&utm_medium=referral`,
-                    description: value.alt_description
-                };
-            })
-        };
-    }
-
-    private convertPixabayResp(response: PixabayResp): PageInfo {
-        return {
-            total: response.total,
-            errors: [],
-            items: response.hits?.map(value => {
-                return {
-                    id: String(value.id),
-                    username: value.user,
-                    thumbUrl: value.previewURL,
-                    downloadUrl: value.imageURL || value.largeImageURL,
-                    htmlUrl: value.pageURL,
-                    description: value.tags
-                };
-            })
-        };
-    }
-
     private random(dialog: Dialog) {
         // 隐藏遮罩层
         this.hideLoading(dialog, true);
@@ -765,20 +522,76 @@ export default class MoreCoverPlugin extends Plugin {
         loading.querySelector(".pmc-loading-info").innerHTML = "";
     }
 
-    private getEnableConfigs(): Config[] {
-        const config = this.getConfig();
-        const list: Config[] = [];
-        Object.keys(config).forEach(value => {
-            if (value == "common") {
-                return;
-            }
-            // @ts-ignore
-            const item = config[value] as Config;
-            if (item.enable) {
-                list.push(item);
+    private isCoverConfig(obj: object): boolean {
+        if (obj instanceof CoverProviderConfig) {
+            return true;
+        }
+        let count = 0;
+        Object.keys(obj).forEach(key => {
+            if (key == "id" || key == "name" || key == "enable") {
+                count++;
             }
         });
-        return list;
+        return count == 3;
+    }
+
+    private reloadEnabledProviders() {
+        this.providers.clear();
+
+        const map = new Map<string, CoverProvider<any>>(covers.map(cover => [cover.config.id, cover]));
+
+        const config = this.getConfig();
+        console.log("reloadEnabledProviders config", config);
+        Object.keys(config).forEach(value => {
+            // @ts-ignore
+            const item = config[value];
+
+            if (!this.isCoverConfig(item)) {
+                return;
+            }
+            if (item.enable) {
+                const provider = map.get(item.id);
+                provider.config = item;
+                this.providers.set(provider.config.id, provider);
+            }
+        });
+
+        console.log("reload enabled providers", this.providers);
+    }
+
+    private validateConfig(config: Configs): readonly [boolean, string] {
+        let allSuccess = true;
+        const allMsg: string[] = [];
+
+        Object.keys(config).forEach(value => {
+            // @ts-ignore
+            const item = config[value];
+            if (!this.isCoverConfig(item)) {
+                return;
+            }
+            const [success, msg] = item.validate(this.i18n);
+            allSuccess = allSuccess && success;
+            if (!success) {
+                allMsg.push(msg);
+            }
+        });
+
+        return [allSuccess, allMsg.join("\n")];
+    }
+
+    private anyConfigEnable(config: Configs): boolean {
+        let anyEnable = false;
+        Object.keys(config).forEach(value => {
+            // @ts-ignore
+            const item = config[value];
+            if (!this.isCoverConfig(item)) {
+                return;
+            }
+            const [success] = item.validate(this.i18n);
+            console.log(item.id, success);
+            anyEnable = anyEnable || success;
+        });
+        return anyEnable;
     }
 
     /**
@@ -786,15 +599,16 @@ export default class MoreCoverPlugin extends Plugin {
      * @private
      */
     private configOrShowDialog(protyle: IProtyle) {
-        if (!this.validateConfig(this.getConfig())) {
+        const config = this.getConfig();
+        console.log("this.anyConfigEnable(config)", config, this.anyConfigEnable(config));
+        if (!this.anyConfigEnable(config)) {
             this.openSetting();
             return;
         }
-        const enableConfigs = this.getEnableConfigs();
-        const anyEnable = enableConfigs.length > 0;
+        const anyEnable = this.providers.size > 0;
         if (anyEnable) {
             // 已有配置文件，直接打开对话框
-            this.showDialog(protyle, enableConfigs);
+            this.showDialog(protyle);
             return;
         }
         // 打开配置对话框
