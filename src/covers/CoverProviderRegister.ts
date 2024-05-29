@@ -5,7 +5,7 @@ import {PixabayConfig, PixabayProvider} from "./PixabayProvider";
 export const unsplashProvider = new UnsplashProvider(new UnsplashConfig());
 export const pixabayProvider = new PixabayProvider(new PixabayConfig());
 
-export const covers: Array<CoverProvider<any>> = [
+export const coverProviders: Array<CoverProvider<any>> = [
     unsplashProvider,
     pixabayProvider,
 ];

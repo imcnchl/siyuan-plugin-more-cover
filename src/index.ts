@@ -3,7 +3,7 @@ import "./index.scss";
 import {UnsplashConfig} from "./covers/UnsplashProvider";
 import {PixabayConfig} from "./covers/PixabayProvider";
 import {Cover, CoverProvider, CoverProviderConfig, PageResult} from "./covers/CoverProvider";
-import {covers} from "./covers/CoverRegister";
+import {coverProviders} from "./covers/CoverProviderRegister";
 
 interface Background {
     element: HTMLElement;
@@ -16,6 +16,9 @@ interface Background {
     render(ial: IObject, rootId: string): void;
 }
 
+/**
+ * 各个图库的配置的字段名必须和 config.id 一致
+ */
 class Configs {
     common = {
         autoSearch: false,
@@ -50,7 +53,12 @@ export default class MoreCoverPlugin extends Plugin {
     }
 
     openSetting() {
-        const configHtml = `
+        const coversConfigHtml = coverProviders.map(value => value.settingHtml(this.i18n)).join("\n");
+
+        const dialog = new Dialog({
+            title: `${this.displayName}${this.i18n.config}`,
+            content: `
+<div class="b3-dialog__content">
 <div class="pmc-config">
     <fieldset class="pmc-config_common">
         <legend>&nbsp;${this.i18n.common}&nbsp;</legend>
@@ -60,39 +68,9 @@ export default class MoreCoverPlugin extends Plugin {
             class="pmc-config-enable pmc-switch b3-switch fn__flex-center"/>      
         </div>
     </fieldset>
-    <fieldset class="pmc-config_unsplash">
-        <legend>&nbsp;${this.configs.unsplash.name}&nbsp;</legend>
-        <div class="pmc-config_line">
-            <label>${this.i18n.enable}:&nbsp;</label>
-            <input type="checkbox" ${this.configs.unsplash.enable ? "checked" : ""} 
-                class="pmc-config-enable pmc-switch b3-switch fn__flex-center"/>      
-        </div>
-        <div class="pmc-config_line">
-            <label>Application Name:&nbsp;</label>
-            <input class="pmc-config-application-name" type="text" value="${this.configs.unsplash.applicationName ?? ""}" style="flex: 1">        
-        </div>
-        <div class="pmc-config_line">
-            <label>Access Key:&nbsp;</label>
-            <input class="pmc-config-key" type="text" value="${this.configs.unsplash.accessKey}" style="flex: 1">        
-        </div>
-    </fieldset>
-    <fieldset class="pmc-config-pixabay">
-        <legend>&nbsp;${this.configs.pixabay.name}&nbsp;</legend>
-        <div class="pmc-config_line">
-            <label>${this.i18n.enable}:&nbsp;</label>
-            <input type="checkbox" ${this.configs.pixabay.enable ? "checked" : ""} 
-                class="pmc-config-enable pmc-switch b3-switch fn__flex-center"/>      
-        </div>
-        <div class="pmc-config_line">
-            <label>Key:&nbsp;</label><input class="pmc-config-key" type="text" value="${this.configs.pixabay.key}" style="flex: 1">        
-        </div>
-    </fieldset>
-</div>        
-        `;
-
-        const dialog = new Dialog({
-            title: `${this.displayName}${this.i18n.config}`,
-            content: `<div class="b3-dialog__content">${configHtml}</div>
+    ${coversConfigHtml}
+</div>
+</div>
 <div class="b3-dialog__action">
     <button class="b3-button b3-button--cancel">${this.i18n.cancel}</button><div class="fn__space"></div>
     <button class="b3-button b3-button--text">${this.i18n.save}</button>
@@ -108,14 +86,13 @@ export default class MoreCoverPlugin extends Plugin {
             const common = dialog.element.querySelector(".pmc-config_common");
             this.configs.common.autoSearch = (common.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
 
-            const unsplash = dialog.element.querySelector(".pmc-config_unsplash");
-            this.configs.unsplash.enable = (unsplash.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
-            this.configs.unsplash.applicationName = (unsplash.querySelector(".pmc-config-application-name") as HTMLInputElement).value ?? "";
-            this.configs.unsplash.accessKey = (unsplash.querySelector(".pmc-config-key") as HTMLInputElement).value;
-
-            const pixabay = dialog.element.querySelector(".pmc-config-pixabay");
-            this.configs.pixabay.enable = (pixabay.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
-            this.configs.pixabay.key = (pixabay.querySelector(".pmc-config-key") as HTMLInputElement).value;
+            coverProviders.forEach(provider => {
+                const html = dialog.element.querySelector(`.pmc-config-${provider.config.id}`) as HTMLElement;
+                provider.readSetting(html);
+                // 重新写入到 configs 中
+                // @ts-ignore
+                this.configs[provider.config.id] = provider.config;
+            });
 
             const [allSuccess, msg] = this.validateConfig();
             console.log("validateConfig", allSuccess, msg);
@@ -157,7 +134,7 @@ export default class MoreCoverPlugin extends Plugin {
         }
 
         // JSON 转对象时属性的方法丢失，需要把方法重新赋值上
-        const map = new Map<string, CoverProvider<any>>(covers.map(cover => [cover.config.id, cover]));
+        const map = new Map<string, CoverProvider<any>>(coverProviders.map(cover => [cover.config.id, cover]));
         Object.keys(this.configs).forEach(value => {
             // @ts-ignore
             const item = this.configs[value] as CoverProviderConfig;
@@ -534,7 +511,7 @@ export default class MoreCoverPlugin extends Plugin {
     private reloadEnabledProviders() {
         this.providers.clear();
 
-        const map = new Map<string, CoverProvider<any>>(covers.map(cover => [cover.config.id, cover]));
+        const map = new Map<string, CoverProvider<any>>(coverProviders.map(cover => [cover.config.id, cover]));
 
         Object.keys(this.configs).forEach(value => {
             // @ts-ignore

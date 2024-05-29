@@ -136,4 +136,33 @@ export class UnsplashProvider implements CoverProvider<UnsplashConfig> {
                 });
         });
     }
+
+    settingHtml(i18n: I18N): string {
+        return `
+<fieldset class="pmc-config-${this.config.id}">
+    <legend>&nbsp;${this.config.name}&nbsp;</legend>
+    <div class="pmc-config_line">
+        <label>${i18n.enable}:&nbsp;</label>
+        <input type="checkbox" ${this.config.enable ? "checked" : ""} 
+            class="pmc-config-enable pmc-switch b3-switch fn__flex-center"/>      
+    </div>
+    <div class="pmc-config_line">
+        <label>Application Name:&nbsp;</label>
+        <input class="pmc-config-application-name" type="text" value="${this.config.applicationName ?? ""}" style="flex: 1">        
+    </div>
+    <div class="pmc-config_line">
+        <label>Access Key:&nbsp;</label>
+        <input class="pmc-config-key" type="text" value="${this.config.accessKey}" style="flex: 1">        
+    </div>
+</fieldset>
+`;
+    }
+
+    readSetting(html: HTMLElement): void {
+        this.config.enable = (html.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
+        this.config.applicationName = (html.querySelector(".pmc-config-application-name") as HTMLInputElement).value ?? "";
+        this.config.accessKey = (html.querySelector(".pmc-config-key") as HTMLInputElement).value;
+    }
+
+
 }

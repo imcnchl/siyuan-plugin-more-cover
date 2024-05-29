@@ -112,4 +112,27 @@ export class PixabayProvider implements CoverProvider<PixabayConfig> {
                 });
         });
     }
+
+    settingHtml(i18n: I18N): string {
+        return `
+<fieldset class="pmc-config-${this.config.id}">
+    <legend>&nbsp;${this.config.name}&nbsp;</legend>
+    <div class="pmc-config_line">
+        <label>${i18n.enable}:&nbsp;</label>
+        <input type="checkbox" ${this.config.enable ? "checked" : ""} 
+            class="pmc-config-enable pmc-switch b3-switch fn__flex-center"/>      
+    </div>
+    <div class="pmc-config_line">
+        <label>Key:&nbsp;</label><input class="pmc-config-key" type="text" value="${this.config.key}" style="flex: 1">        
+    </div>
+</fieldset>
+        `;
+    }
+
+    readSetting(html: HTMLElement): void {
+        this.config.enable = (html.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
+        this.config.key = (html.querySelector(".pmc-config-key") as HTMLInputElement).value;
+    }
+
+
 }

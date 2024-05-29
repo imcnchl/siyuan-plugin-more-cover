@@ -110,4 +110,14 @@ export abstract class CoverProvider<CONFIG> {
      */
     abstract downloadCover(event: Event): Promise<Cover>;
 
+    /**
+     * 配置页面的HTML，注意：最外层原始的 class 需要符合：pmc-config-${this.config.id}
+     */
+    abstract settingHtml(i18n: I18N): string;
+
+    /**
+     * 从配置页面的HTML中读取配置
+     * @param html
+     */
+    abstract readSetting(html: HTMLElement) : void;
 }
