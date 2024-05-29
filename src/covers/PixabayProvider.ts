@@ -10,7 +10,7 @@ export class PixabayConfig implements CoverProviderConfig {
 
     validate(i18n: I18N): readonly [boolean, string] {
         if (!this.enable) {
-            return [false, ""];
+            return [true, ""];
         }
         const msg: string[] = [];
         if (!this.key) {

@@ -10,7 +10,7 @@ export class UnsplashConfig implements CoverProviderConfig {
 
     validate(i18n: I18N): readonly [boolean, string] {
         if (!this.enable) {
-            return [false, ""];
+            return [true, ""];
         }
         const msg: string[] = [];
         if (!this.applicationName) {
@@ -110,17 +110,25 @@ export class UnsplashProvider implements CoverProvider<UnsplashConfig> {
         const target = event.target as HTMLElement;
         const id = target.dataset.imageId;
         const url = target.dataset.downloadUrl;
-        let format = "png";
 
         return new Promise<Cover>((resolve, reject) => {
             fetch(url)
                 .then(async response => {
                     const r = await response.json();
-                    const v = await fetch(r.url);
-                    format = url.substring(url.indexOf("fm=") + 3);
-                    format = format.substring(0, format.indexOf("&"));
+                    const downloadUrl = r.url as string;
 
-                    const cover = new Cover(id, r.url, format, await v.blob());
+                    const v = await fetch(downloadUrl);
+                    const blob = await v.blob();
+
+                    let format = "png";
+                    if (downloadUrl.indexOf("fm=") != -1) {
+                        format = downloadUrl.substring(downloadUrl.indexOf("fm=") + 3);
+                        format = format.substring(0, format.indexOf("&"));
+                    } else {
+                        format = blob.type.substring(blob.type.lastIndexOf("/"));
+                    }
+
+                    const cover = new Cover(id, downloadUrl, format, blob);
                     resolve(cover);
                 })
                 .catch(reason => {
