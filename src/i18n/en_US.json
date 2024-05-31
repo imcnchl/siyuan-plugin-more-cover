@@ -19,7 +19,14 @@
   "cancel": "Cancel",
   "unsplash": {
     "applicationNameNotNull": "Unsplash Application Name can't be null.",
-    "accessKeyNotNull": "Unsplash Access Key can't be null."
+    "accessKeyNotNull": "Unsplash Access Key can't be null.",
+    "randomEnable": "Show random images",
+    "randomOrderBy": "Random images order by",
+    "randomOrderOptions": {
+      "latest": "latest",
+      "popular": "popular",
+      "oldest": "oldest"
+    }
   },
   "pixabay": {
     "keyNotNull": "Pixabay Key can't be null."

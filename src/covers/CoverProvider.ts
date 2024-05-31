@@ -117,7 +117,7 @@ export abstract class CoverProvider<CONFIG extends CoverProviderConfig> {
     /**
      * 显示随机封面
      */
-    abstract randomCovers(): Promise<PageResult>;
+    abstract randomCovers(pageNum: number): Promise<PageResult>;
 
     /**
      * 搜索封面
@@ -135,13 +135,17 @@ export abstract class CoverProvider<CONFIG extends CoverProviderConfig> {
     /**
      * 配置页面的HTML，注意：最外层元素的 class 需要符合：pmc-config-${this.config.id}
      */
-    abstract settingHtml(i18n: I18N): string;
+    abstract makeSettingHtml(i18n: I18N,
+                             saveSetting: Promise<HTMLElement>,
+                             bindEvent: Promise<{
+                                 plugin: MoreCoverPlugin;
+                                 dialog: Dialog;
+                                 target: HTMLElement
+                             }>): string;
 
-    /**
-     * 从配置页面的HTML中读取配置
-     * @param html
-     */
-    abstract readSetting(html: HTMLElement): void;
+    getSettingHtml(dialog: Dialog): HTMLElement {
+        return dialog.element.querySelector(`.pmc-config-${this.config.id}`);
+    }
 
     /**
      * 在切换图库的下拉列表后面插入代码，注意：最外层元素的 class 需要符合：pmc-after-change-${this.config.id}

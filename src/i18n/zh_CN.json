@@ -19,7 +19,14 @@
   "cancel": "取消",
   "unsplash": {
     "applicationNameNotNull": "Unsplash Application Name 不能为空",
-    "accessKeyNotNull": "Unsplash Access Key 不能为空"
+    "accessKeyNotNull": "Unsplash Access Key 不能为空",
+    "randomEnable": "显示随机图片",
+    "randomOrderBy": "随机图片排序",
+    "randomOrderOptions": {
+      "latest": "最新图片",
+      "popular": "最受欢迎",
+      "oldest": "最旧图片"
+    }
   },
   "pixabay": {
     "keyNotNull": "Pixabay Key 不能为空"

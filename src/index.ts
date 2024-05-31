@@ -53,7 +53,25 @@ export default class MoreCoverPlugin extends Plugin {
     }
 
     openSetting() {
-        const coversConfigHtml = coverProviders.map(value => value.settingHtml(this.i18n)).join("\n");
+
+        const bindEventMap = new Map<CoverProvider<any>, any>();
+        const saveSettingMap = new Map<CoverProvider<any>, any>();
+        let coversConfigHtml = "";
+        this.providers.forEach(provider => {
+            const settingPromise = new Promise<HTMLElement>(resolve => {
+                saveSettingMap.set(provider, resolve);
+            });
+            const html = provider.makeSettingHtml(this.i18n, settingPromise, new Promise<BindHtmlEvent>(resolve => {
+                bindEventMap.set(provider, resolve);
+            }));
+
+            settingPromise.then(() => {
+                // 重新写入到 configs 中
+                // @ts-ignore
+                this.configs[provider.config.id] = provider.config;
+            });
+            coversConfigHtml += html + "\n";
+        });
 
         const dialog = new Dialog({
             title: `${this.displayName}${this.i18n.config}`,
@@ -86,12 +104,14 @@ export default class MoreCoverPlugin extends Plugin {
             const common = dialog.element.querySelector(".pmc-config_common");
             this.configs.common.autoSearch = (common.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
 
-            coverProviders.forEach(provider => {
-                const html = dialog.element.querySelector(`.pmc-config-${provider.config.id}`) as HTMLElement;
-                provider.readSetting(html);
-                // 重新写入到 configs 中
-                // @ts-ignore
-                this.configs[provider.config.id] = provider.config;
+            // 触发事件
+            saveSettingMap.forEach((resolve, provider) => {
+                const target = provider.getSettingHtml(dialog);
+                resolve({
+                    plugin: this,
+                    dialog: dialog,
+                    target: target
+                });
             });
 
             const [allSuccess, msg] = this.validateConfig();
@@ -103,6 +123,15 @@ export default class MoreCoverPlugin extends Plugin {
             this.saveData(this.storage_name, this.configs).then(r => console.log("保存配置成功", r));
             this.reloadAll();
             dialog.destroy();
+        });
+        // 触发事件
+        bindEventMap.forEach((resolve, provider) => {
+            const target = provider.getSettingHtml(dialog);
+            resolve({
+                plugin: this,
+                dialog: dialog,
+                target: target
+            });
         });
     }
 
@@ -327,7 +356,7 @@ export default class MoreCoverPlugin extends Plugin {
         // 每次打开都进行焦点
         searchInput.focus();
         // 打开对话框时自动查询
-        this.doSearch(dialog, protyle);
+        this.doSearch(dialog, protyle, "", 1);
     }
 
     private hideOtherProviderHtml(dialog: Dialog) {
@@ -352,7 +381,7 @@ export default class MoreCoverPlugin extends Plugin {
         if (searchValue) {
             this.search(dialog, protyle, searchValue, pageNum);
         } else {
-            this.random(dialog);
+            this.random(dialog, protyle, pageNum);
         }
     }
 
@@ -493,9 +522,20 @@ export default class MoreCoverPlugin extends Plugin {
         this.doSearch(dialog, protyle, searchInput.value, pageNum);
     }
 
-    private random(dialog: Dialog) {
-        // 隐藏遮罩层
-        this.hideLoading(dialog, true);
+    private random(dialog: Dialog, protyle: IProtyle, pageNum: number) {
+        // 获取当前配置
+        const provider = this.getActiveProvider(dialog);
+        provider.randomCovers(pageNum).then(pageInfo => {
+            console.log("pageInfo", pageInfo);
+            this.showResult(dialog, protyle, provider, pageInfo);
+            // 隐藏遮罩层
+            this.hideLoading(dialog, true);
+        }).catch(reason => {
+            showMessage(reason, 5000, "error");
+            console.log(reason);
+            // 隐藏遮罩层
+            this.hideLoading(dialog, true);
+        });
     }
 
     private showLoading(dialog: Dialog, msg: string, isSearch: boolean) {

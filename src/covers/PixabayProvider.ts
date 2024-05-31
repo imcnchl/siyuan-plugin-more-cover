@@ -1,5 +1,6 @@
 import {BindHtmlEvent, Cover, CoverProvider, CoverProviderConfig, PageResult} from "./CoverProvider";
-import {I18N} from "siyuan";
+import {Dialog, I18N} from "siyuan";
+import MoreCoverPlugin from "../index";
 
 export class PixabayConfig implements CoverProviderConfig {
     id = "pixabay";
@@ -56,7 +57,7 @@ export interface PixabayResp {
 export class PixabayProvider extends CoverProvider<PixabayConfig> {
     config: PixabayConfig;
 
-    randomCovers(): Promise<PageResult> {
+    randomCovers(pageNum: number): Promise<PageResult> {
         return Promise.resolve(undefined);
     }
 
@@ -109,7 +110,15 @@ export class PixabayProvider extends CoverProvider<PixabayConfig> {
         });
     }
 
-    settingHtml(i18n: I18N): string {
+    makeSettingHtml(i18n: I18N,
+                    saveSetting: Promise<HTMLElement>,
+                    bindEvent: Promise<{
+                        plugin: MoreCoverPlugin;
+                        dialog: Dialog;
+                        target: HTMLElement
+                    }>): string {
+
+
         return `
 <fieldset class="pmc-config-${this.config.id}">
     <legend>&nbsp;${this.config.name}&nbsp;</legend>
@@ -123,11 +132,6 @@ export class PixabayProvider extends CoverProvider<PixabayConfig> {
     </div>
 </fieldset>
         `;
-    }
-
-    readSetting(html: HTMLElement): void {
-        this.config.enable = (html.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
-        this.config.key = (html.querySelector(".pmc-config-key") as HTMLInputElement).value;
     }
 
     makeAfterSelectHtml(i18n: I18N, bindEvent: Promise<BindHtmlEvent>): string {
