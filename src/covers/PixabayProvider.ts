@@ -1,4 +1,4 @@
-import {Cover, CoverProvider, CoverProviderConfig, PageResult} from "./CoverProvider";
+import {BindHtmlEvent, Cover, CoverProvider, CoverProviderConfig, PageResult} from "./CoverProvider";
 import {I18N} from "siyuan";
 
 export class PixabayConfig implements CoverProviderConfig {
@@ -53,12 +53,8 @@ export interface PixabayResp {
     hits: PixabayHit[];
 }
 
-export class PixabayProvider implements CoverProvider<PixabayConfig> {
+export class PixabayProvider extends CoverProvider<PixabayConfig> {
     config: PixabayConfig;
-
-    constructor(config: PixabayConfig) {
-        this.config = config;
-    }
 
     randomCovers(): Promise<PageResult> {
         return Promise.resolve(undefined);
@@ -132,6 +128,34 @@ export class PixabayProvider implements CoverProvider<PixabayConfig> {
     readSetting(html: HTMLElement): void {
         this.config.enable = (html.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
         this.config.key = (html.querySelector(".pmc-config-key") as HTMLInputElement).value;
+    }
+
+    makeAfterSelectHtml(i18n: I18N, bindEvent: Promise<BindHtmlEvent>): string {
+        const languages = new Map<string, string>([
+            ["zh", i18n.languages.zh],
+            ["en", i18n.languages.en],
+        ]);
+
+        let html = `<select class="pmc-after-change-${this.config.id} pmc-search-pixabay-language-select">`;
+        languages.forEach((code, name) => {
+            html += `<option value="${code}" ${code == this.config.language ? "selected" : ""}>${name}</option>`;
+        });
+        html += "</select>";
+
+        bindEvent.then(bhe => {
+            bhe.target.addEventListener("change", evt => {
+                const target = evt.target as HTMLSelectElement;
+                const id = target.options[target.selectedIndex].value;
+                bhe.searchInput.dispatchEvent(new InputEvent("input"));
+                bhe.searchBtn?.dispatchEvent(new Event("click"));
+                bhe.plugin.configs.pixabay.language = id;
+                bhe.plugin.saveData(bhe.plugin.storage_name, bhe.plugin.configs).then(r => console.log(`保存${this.config.id}下拉框成功`, r));
+                // 切换下拉框后也需要焦点
+                bhe.searchInput.focus();
+            });
+        });
+
+        return html;
     }
 
 

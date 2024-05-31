@@ -1,4 +1,4 @@
-import {Cover, CoverProvider, CoverProviderConfig, PageResult} from "./CoverProvider";
+import {BindHtmlEvent, Cover, CoverProvider, CoverProviderConfig, PageResult} from "./CoverProvider";
 import {I18N} from "siyuan";
 
 export class UnsplashConfig implements CoverProviderConfig {
@@ -66,12 +66,8 @@ interface UnsplashResp {
     errors: string[];
 }
 
-export class UnsplashProvider implements CoverProvider<UnsplashConfig> {
+export class UnsplashProvider extends CoverProvider<UnsplashConfig> {
     config: UnsplashConfig;
-
-    constructor(config: UnsplashConfig) {
-        this.config = config;
-    }
 
     randomCovers(): Promise<PageResult> {
         return Promise.resolve(undefined);
@@ -163,6 +159,5 @@ export class UnsplashProvider implements CoverProvider<UnsplashConfig> {
         this.config.applicationName = (html.querySelector(".pmc-config-application-name") as HTMLInputElement).value ?? "";
         this.config.accessKey = (html.querySelector(".pmc-config-key") as HTMLInputElement).value;
     }
-
 
 }

@@ -2,7 +2,7 @@ import {Dialog, fetchPost, getFrontend, IObject, IProtyle, Plugin, showMessage} 
 import "./index.scss";
 import {UnsplashConfig} from "./covers/UnsplashProvider";
 import {PixabayConfig} from "./covers/PixabayProvider";
-import {Cover, CoverProvider, CoverProviderConfig, PageResult} from "./covers/CoverProvider";
+import {BindHtmlEvent, Cover, CoverProvider, CoverProviderConfig, PageResult} from "./covers/CoverProvider";
 import {coverProviders} from "./covers/CoverProviderRegister";
 
 interface Background {
@@ -35,9 +35,9 @@ export default class MoreCoverPlugin extends Plugin {
         "zh": `${this.i18n.languages.zh}`,
         "en": `${this.i18n.languages.en}`
     };
-    private configs: Configs;
+    configs: Configs;
     private providers: Map<string, CoverProvider<any>> = new Map();
-    private storage_name = "more-cover-config";
+    storage_name = "more-cover-config";
 
     onload() {
         const frontEnd = getFrontend();
@@ -216,17 +216,17 @@ export default class MoreCoverPlugin extends Plugin {
             selectConfigHtml += "</select>";
         }
 
-        let pixabayLanguageHtml = "<select class=\"pmc-search-pixabay-language-select\">";
-        for (const code in this.pixabayLanguages) {
-            // @ts-ignore
-            const name = this.pixabayLanguages[code];
-            pixabayLanguageHtml += `<option value="${code}" ${code == this.configs.pixabay.language ? "selected" : ""}>${name}</option>`;
-        }
-        pixabayLanguageHtml += "</select>";
+        const bindEventMap = new Map<CoverProvider<any>, any>();
+        let afterChangeCoverProviderHtml = "";
+        this.providers.forEach(provider => {
+            const html = provider.makeAfterSelectHtml(this.i18n, new Promise<BindHtmlEvent>(resolve => {
+                bindEventMap.set(provider, resolve);
+            }));
+            afterChangeCoverProviderHtml += html;
+        });
 
         // @ts-ignore
         const selectedName = this.configs[selectedId].name;
-        console.log("selectedName", selectedName, "selectHtml", selectConfigHtml);
 
         const dialog = new Dialog({
             title: this.i18n.pluginName,
@@ -242,7 +242,7 @@ export default class MoreCoverPlugin extends Plugin {
 <div class="b3-dialog__content" style="background: var(--b3-theme-background); padding: 10px; display: flex; flex-direction: column;">
     <div class="pmc-search">
         ${selectConfigHtml}
-        ${pixabayLanguageHtml}
+        ${afterChangeCoverProviderHtml}
         <div class="pmc-search-focusable-within">
             <input class="pmc-search-input" type="text" autofocus="autofocus" 
                 placeholder="${this.i18n.use} ${selectedName} ${this.i18n.searchPlaceholder}"/>
@@ -272,8 +272,7 @@ export default class MoreCoverPlugin extends Plugin {
 
         // 绑定事件
         const searchInput = dialog.element.querySelector(".pmc-search-input") as HTMLInputElement;
-        const searchBtn = dialog.element.querySelector(".pmc-search-btn");
-        const pixabayLanguageSelect = dialog.element.querySelector(".pmc-search-pixabay-language-select") as HTMLSelectElement;
+        const searchBtn = dialog.element.querySelector(".pmc-search-btn") as HTMLButtonElement;
         dialog.element.querySelector(".pmc-search-select")?.addEventListener("change", evt => {
             const target = evt.target as HTMLSelectElement;
             const id = target.options[target.selectedIndex].value;
@@ -285,26 +284,25 @@ export default class MoreCoverPlugin extends Plugin {
             searchBtn?.dispatchEvent(new Event("click"));
             this.configs.common.selectedId = id;
             this.saveData(this.storage_name, this.configs).then(r => console.log("保存下拉框成功", r));
-            if (id != "pixabay") {
-                pixabayLanguageSelect?.classList.add("pmc-hide");
-            } else {
-                pixabayLanguageSelect?.classList.remove("pmc-hide");
-            }
+            // 隐藏其他图库的html
+            this.hideOtherProviderHtml(dialog);
             // 切换下拉框后也需要焦点
             searchInput.focus();
         });
-        if (selectedId != "pixabay") {
-            pixabayLanguageSelect?.classList.add("pmc-hide");
-        }
-        pixabayLanguageSelect?.addEventListener("change", evt => {
-            const target = evt.target as HTMLSelectElement;
-            const id = target.options[target.selectedIndex].value;
-            searchInput.dispatchEvent(new InputEvent("input"));
-            searchBtn?.dispatchEvent(new Event("click"));
-            this.configs.pixabay.language = id;
-            this.saveData(this.storage_name, this.configs).then(r => console.log("保存下拉框成功", r));
-            // 切换下拉框后也需要焦点
-            searchInput.focus();
+
+        // 隐藏其他图库的html
+        this.hideOtherProviderHtml(dialog);
+        // 触发事件
+        bindEventMap.forEach((resolve, provider) => {
+            const target = provider.getAfterSelectHtml(dialog);
+            const bindHtmlEvent: BindHtmlEvent = {
+                plugin: this,
+                dialog: dialog,
+                target: target,
+                searchInput: searchInput,
+                searchBtn: searchBtn
+            };
+            resolve(bindHtmlEvent);
         });
 
         if (!this.configs.common.autoSearch) {
@@ -330,6 +328,19 @@ export default class MoreCoverPlugin extends Plugin {
         searchInput.focus();
         // 打开对话框时自动查询
         this.doSearch(dialog, protyle);
+    }
+
+    private hideOtherProviderHtml(dialog: Dialog) {
+        this.providers.forEach(provider => {
+            const html = provider.getAfterSelectHtml(dialog);
+            if (provider.config.id !== this.configs.common.selectedId) {
+                // 不是当前选中，需要隐藏掉
+                html?.classList.add("pmc-hide");
+            } else {
+                // 当前选中
+                html?.classList.remove("pmc-hide");
+            }
+        });
     }
 
     private doSearch(dialog: Dialog, protyle: IProtyle, searchValue?: string, pageNum?: number) {

@@ -1,4 +1,5 @@
-import {I18N, IProtyle} from "siyuan";
+import {Dialog, I18N, IProtyle} from "siyuan";
+import MoreCoverPlugin from "../index";
 
 /**
  * 封面信息
@@ -48,6 +49,23 @@ interface ImageInfo {
     description: string;
 }
 
+export type BindHtmlEvent = {
+    plugin: MoreCoverPlugin;
+    dialog: Dialog;
+    /**
+     * 字符串对应的html元素
+     */
+    target: HTMLElement;
+    /**
+     * 搜索输入框
+     */
+    searchInput: HTMLInputElement;
+    /**
+     * 搜索按钮，可能为空
+     */
+    searchBtn: HTMLButtonElement;
+}
+
 export class PageResult {
     /**
      * 当前页码
@@ -86,11 +104,15 @@ export class PageResult {
     }
 }
 
-export abstract class CoverProvider<CONFIG> {
+export abstract class CoverProvider<CONFIG extends CoverProviderConfig> {
     /**
      * 配置信息
      */
     config: CONFIG;
+
+    constructor(config: CONFIG) {
+        this.config = config;
+    }
 
     /**
      * 显示随机封面
@@ -111,7 +133,7 @@ export abstract class CoverProvider<CONFIG> {
     abstract downloadCover(event: Event): Promise<Cover>;
 
     /**
-     * 配置页面的HTML，注意：最外层原始的 class 需要符合：pmc-config-${this.config.id}
+     * 配置页面的HTML，注意：最外层元素的 class 需要符合：pmc-config-${this.config.id}
      */
     abstract settingHtml(i18n: I18N): string;
 
@@ -119,5 +141,21 @@ export abstract class CoverProvider<CONFIG> {
      * 从配置页面的HTML中读取配置
      * @param html
      */
-    abstract readSetting(html: HTMLElement) : void;
+    abstract readSetting(html: HTMLElement): void;
+
+    /**
+     * 在切换图库的下拉列表后面插入代码，注意：最外层元素的 class 需要符合：pmc-after-change-${this.config.id}
+     * 示例代码：
+     * `<div class="pmc-after-change-${this.config.id}">测试代码</div>`
+     * @param i18n
+     * @param bindEvent 绑定事件
+     */
+    makeAfterSelectHtml(i18n: I18N, bindEvent: Promise<BindHtmlEvent>): string {
+        return "";
+    }
+
+    getAfterSelectHtml(dialog: Dialog): HTMLElement {
+        return dialog.element.querySelector(`.pmc-after-change-${this.config.id}`);
+    }
+
 }
