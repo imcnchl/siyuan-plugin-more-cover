@@ -76,8 +76,8 @@ export class UnsplashProvider extends CoverProvider<UnsplashConfig> {
         if (!this.config.randomEnable) {
             return Promise.resolve(undefined);
         }
-        const pageSize = 30;
-        const total = 3000;
+        const pageSize = this.pageSize();
+        const total = this.maxRandomTotal();
         const url = `https://api.unsplash.com/photos?page=${pageNum}&per_page=${pageSize}&order_by=${this.config.randomOrderBy}&client_id=${this.config.accessKey}`;
 
         return new Promise<PageResult>((resolve, reject) => {
@@ -106,7 +106,7 @@ export class UnsplashProvider extends CoverProvider<UnsplashConfig> {
     }
 
     searchCovers(keyword: string, pageNum: number): Promise<PageResult> {
-        const pageSize = 30;
+        const pageSize = this.pageSize();
         const url = `https://api.unsplash.com/search/photos?page=${pageNum}&per_page=${pageSize}&query=${keyword}&client_id=${this.config.accessKey}`;
 
         return new Promise<PageResult>((resolve, reject) => {
@@ -134,10 +134,9 @@ export class UnsplashProvider extends CoverProvider<UnsplashConfig> {
         });
     }
 
-    downloadCover(event: Event): Promise<Cover> {
-        const target = event.target as HTMLElement;
-        const id = target.dataset.imageId;
-        const url = target.dataset.downloadUrl;
+    downloadCover2(data: {id: string, url: string}): Promise<Cover> {
+        const id = data.id;
+        const url = data.url;
 
         return new Promise<Cover>((resolve, reject) => {
             fetch(url)
@@ -173,8 +172,8 @@ export class UnsplashProvider extends CoverProvider<UnsplashConfig> {
                         target: HTMLElement
                     }>): string {
 
-        const options = i18n.unsplash.randomOrderOptions ;
-        console.log("options",options);
+        const options = i18n.unsplash.randomOrderOptions;
+        console.log("options", options);
         let selectOptionHtml = `<select class="pmc-setting-${this.config.id}-random-order-by">`;
         Object.keys(options).forEach((code) => {
             const name = options[code];

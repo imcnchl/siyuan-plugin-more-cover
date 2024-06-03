@@ -6,6 +6,7 @@ export class PixabayConfig implements CoverProviderConfig {
     id = "pixabay";
     name = "Pixabay";
     enable = false;
+    randomEnable = false;
     key = "";
     language = "en";
 
@@ -62,7 +63,7 @@ export class PixabayProvider extends CoverProvider<PixabayConfig> {
     }
 
     searchCovers(keyword: string, pageNum: number): Promise<PageResult> {
-        const pageSize = 30;
+        const pageSize = this.pageSize();
         const url = `https://pixabay.com/api/?key=${this.config.key}&q=${keyword}&lang=${this.config.language}&page=${pageNum}&per_page=${pageSize}`;
 
         return new Promise<PageResult>((resolve, reject) => {
@@ -89,10 +90,9 @@ export class PixabayProvider extends CoverProvider<PixabayConfig> {
         });
     }
 
-    downloadCover(event: Event): Promise<Cover> {
-        const target = event.target as HTMLElement;
-        const id = target.dataset.imageId;
-        const url = target.dataset.downloadUrl;
+    downloadCover2(data: { id: string, url: string }): Promise<Cover> {
+        const id = data.id;
+        const url = data.url;
         const format = "png";
 
         return new Promise<Cover>((resolve, reject) => {

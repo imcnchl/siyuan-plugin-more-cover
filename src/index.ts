@@ -1,4 +1,4 @@
-import {Dialog, fetchPost, getFrontend, IObject, IProtyle, Plugin, showMessage} from "siyuan";
+import {Dialog, fetchPost, getFrontend, IEventBusMap, IObject, IProtyle, Plugin, showMessage, TEventBus} from "siyuan";
 import "./index.scss";
 import {UnsplashConfig} from "./covers/UnsplashProvider";
 import {PixabayConfig} from "./covers/PixabayProvider";
@@ -22,7 +22,11 @@ interface Background {
 class Configs {
     common = {
         autoSearch: false,
-        selectedId: ""
+        selectedId: "",
+        /**
+         * 自动添加封面
+         */
+        autoAddCoverIfAbsent: true
     };
     unsplash: UnsplashConfig = new UnsplashConfig();
     pixabay: PixabayConfig = new PixabayConfig();
@@ -36,7 +40,7 @@ export default class MoreCoverPlugin extends Plugin {
         "en": `${this.i18n.languages.en}`
     };
     configs: Configs;
-    private providers: Map<string, CoverProvider<any>> = new Map();
+    private providers: Map<string, CoverProvider<CoverProviderConfig>> = new Map();
     storage_name = "more-cover-config";
 
     onload() {
@@ -81,7 +85,7 @@ export default class MoreCoverPlugin extends Plugin {
                         showMessage(msg);
                         return;
                     }
-                    this.saveData(this.storage_name, this.configs).then(r => console.log("保存配置成功", r));
+                    this.saveData(this.storage_name, this.configs).then(r => console.log("保存配置成功", this.configs));
                     this.reloadAll();
                     dialog.destroy();
                 }
@@ -99,7 +103,12 @@ export default class MoreCoverPlugin extends Plugin {
         <div class="pmc-config_line">
             <label>${this.i18n.autoSearch}:&nbsp;</label>
             <input type="checkbox" ${this.configs.common.autoSearch ? "checked" : ""} 
-            class="pmc-config-enable pmc-switch b3-switch fn__flex-center"/>      
+            class="pmc-config-enable pmc-switch b3-switch fn__flex-center pmc-config-autoSearch"/>      
+        </div>
+        <div class="pmc-config_line">
+            <label>${this.i18n.autoAddCoverIfAbsent}:&nbsp;</label>
+            <input type="checkbox" ${this.configs.common.autoAddCoverIfAbsent ? "checked" : ""} 
+            class="pmc-config-enable pmc-switch b3-switch fn__flex-center pmc-config-autoAddCoverIfAbsent"/>      
         </div>
     </fieldset>
     ${coversConfigHtml}
@@ -118,7 +127,8 @@ export default class MoreCoverPlugin extends Plugin {
         });
         buttons[1].addEventListener("click", () => {
             const common = dialog.element.querySelector(".pmc-config_common");
-            this.configs.common.autoSearch = (common.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
+            this.configs.common.autoSearch = (common.querySelector(".pmc-config-autoSearch") as HTMLInputElement).checked;
+            this.configs.common.autoAddCoverIfAbsent = (common.querySelector(".pmc-config-autoAddCoverIfAbsent") as HTMLInputElement).checked;
 
             // 触发事件
             saveSettingMap.forEach((resolve, provider) => {
@@ -149,6 +159,7 @@ export default class MoreCoverPlugin extends Plugin {
         console.log(`${this.i18n.pluginName} is loaded`);
         this.eventBus.on("loaded-protyle-static", event => {
             this.addChangeIconListener(event);
+            this.autoAddCoverIfAbsent(event);
         });
     }
 
@@ -228,7 +239,7 @@ export default class MoreCoverPlugin extends Plugin {
                 background.render(background.ial, protyle.block.rootID);
 
                 // 关闭 dialog
-                dialog.destroy();
+                dialog?.destroy();
             });
         });
     }
@@ -541,6 +552,9 @@ export default class MoreCoverPlugin extends Plugin {
     }
 
     private showLoading(dialog: Dialog, msg: string, isSearch: boolean) {
+        if (!dialog) {
+            return;
+        }
         const selectors = isSearch ? "#pmc-search-loading" : "#pmc-change-loading";
         // const height =showHeader ?  "496px";
 
@@ -660,4 +674,53 @@ export default class MoreCoverPlugin extends Plugin {
             return "click";
         }
     };
+
+    private autoAddCoverIfAbsent(event: CustomEvent<{ protyle: IProtyle }>) {
+        if (!this.configs.common.autoAddCoverIfAbsent) {
+            console.log("关闭自动添加封面");
+            return;
+        }
+        console.log(event);
+        const protyle = event.detail.protyle;
+        fetchPost("/api/attr/getBlockAttrs", {
+            id: protyle.block.rootID,
+        }, response => {
+            const data = response.data as { id: string, title: string, "title-img": string, type: string; };
+            if (data["title-img"]) {
+                return;
+            }
+            showMessage((`文档 ${data.title} 不存在封面，准备生成随机封面`));
+            let provider: CoverProvider<any>;
+            this.providers.forEach(value => {
+                if (value.config.randomEnable && !provider) {
+                    provider = value;
+                }
+            });
+            console.log(response, provider);
+            const maxPageNum = Math.floor(provider.maxRandomTotal() / provider.pageSize());
+            console.log(`最大可随机页码 ${maxPageNum}`);
+            let pageNum = Math.floor(Math.random() * maxPageNum);
+            pageNum = pageNum > 1 ? pageNum : 1;
+            provider.randomCovers(pageNum).then((result) => {
+                    if (!result.items || result.items.length === 0) {
+                        return;
+                    }
+                    let size = result.items.length;
+                    size = Math.floor(Math.random() * size);
+                    const image = result.items[size];
+                    console.log("随机到封面：", image);
+                    showMessage(`开始下载文档 ${data.title} 的封面`);
+                    provider.downloadCover2({id: image.id, url: image.downloadUrl}).then(cover => {
+                        console.log("cover", cover);
+                        showMessage(`下载文档 ${data.title} 的封面完成`);
+                        this.changeCover(null, provider, cover, protyle);
+                    }).catch(reason => {
+                        console.log(reason);
+                    });
+                }
+            ).catch(reason => {
+                console.log(reason);
+            });
+        });
+    }
 }

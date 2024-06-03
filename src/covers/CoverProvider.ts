@@ -33,6 +33,7 @@ export abstract class CoverProviderConfig {
     id: string;
     name: string;
     enable: boolean;
+    randomEnable: boolean;
 
     /**
      * 校验配置
@@ -114,6 +115,17 @@ export abstract class CoverProvider<CONFIG extends CoverProviderConfig> {
         this.config = config;
     }
 
+    pageSize(): number {
+        return 30;
+    }
+
+    /**
+     * 最大随机数量
+     */
+    maxRandomTotal(): number {
+        return 3000;
+    }
+
     /**
      * 显示随机封面
      */
@@ -130,7 +142,14 @@ export abstract class CoverProvider<CONFIG extends CoverProviderConfig> {
      * 下载封面
      * @param event
      */
-    abstract downloadCover(event: Event): Promise<Cover>;
+    downloadCover(event: Event): Promise<Cover>{
+        const target = event.target as HTMLElement;
+        const id = target.dataset.imageId;
+        const url = target.dataset.downloadUrl;
+        return this.downloadCover2({id, url});
+    }
+
+   abstract downloadCover2(data: {id: string, url: string}): Promise<Cover> ;
 
     /**
      * 配置页面的HTML，注意：最外层元素的 class 需要符合：pmc-config-${this.config.id}

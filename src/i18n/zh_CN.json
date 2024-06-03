@@ -17,6 +17,7 @@
   "searching": "正在搜索中，请稍候",
   "save": "保存",
   "cancel": "取消",
+  "autoAddCoverIfAbsent": "自动添加封面",
   "unsplash": {
     "applicationNameNotNull": "Unsplash Application Name 不能为空",
     "accessKeyNotNull": "Unsplash Access Key 不能为空",

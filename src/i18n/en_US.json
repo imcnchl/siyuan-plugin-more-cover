@@ -17,6 +17,7 @@
   "searching": "Please wait while searching",
   "save": "Save",
   "cancel": "Cancel",
+  "autoAddCoverIfAbsent": "Auto add cover if absent",
   "unsplash": {
     "applicationNameNotNull": "Unsplash Application Name can't be null.",
     "accessKeyNotNull": "Unsplash Access Key can't be null.",
