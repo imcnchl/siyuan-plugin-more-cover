@@ -57,7 +57,7 @@ export default class MoreCoverPlugin extends Plugin {
         const bindEventMap = new Map<CoverProvider<any>, any>();
         const saveSettingMap = new Map<CoverProvider<any>, any>();
         let coversConfigHtml = "";
-        this.providers.forEach(provider => {
+        coverProviders.forEach(provider => {
             const settingPromise = new Promise<HTMLElement>(resolve => {
                 saveSettingMap.set(provider, resolve);
             });
@@ -65,10 +65,26 @@ export default class MoreCoverPlugin extends Plugin {
                 bindEventMap.set(provider, resolve);
             }));
 
+            let count = saveSettingMap.size;
             settingPromise.then(() => {
+                console.log(`重写插件中 ${provider.config.id} 的配置信息`, provider.config);
                 // 重新写入到 configs 中
                 // @ts-ignore
                 this.configs[provider.config.id] = provider.config;
+            }).then(() => {
+                count = count - 1;
+                if (count <= 0) {
+                    console.log("all provider config changed, do save");
+                    const [allSuccess, msg] = this.validateConfig();
+                    console.log("validateConfig", allSuccess, msg);
+                    if (!allSuccess) {
+                        showMessage(msg);
+                        return;
+                    }
+                    this.saveData(this.storage_name, this.configs).then(r => console.log("保存配置成功", r));
+                    this.reloadAll();
+                    dialog.destroy();
+                }
             });
             coversConfigHtml += html + "\n";
         });
@@ -107,22 +123,8 @@ export default class MoreCoverPlugin extends Plugin {
             // 触发事件
             saveSettingMap.forEach((resolve, provider) => {
                 const target = provider.getSettingHtml(dialog);
-                resolve({
-                    plugin: this,
-                    dialog: dialog,
-                    target: target
-                });
+                resolve(target);
             });
-
-            const [allSuccess, msg] = this.validateConfig();
-            console.log("validateConfig", allSuccess, msg);
-            if (!allSuccess) {
-                showMessage(msg);
-                return;
-            }
-            this.saveData(this.storage_name, this.configs).then(r => console.log("保存配置成功", r));
-            this.reloadAll();
-            dialog.destroy();
         });
         // 触发事件
         bindEventMap.forEach((resolve, provider) => {

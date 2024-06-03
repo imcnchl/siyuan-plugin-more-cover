@@ -173,9 +173,11 @@ export class UnsplashProvider extends CoverProvider<UnsplashConfig> {
                         target: HTMLElement
                     }>): string {
 
-        const options = i18n.unsplash.randomOrderOptions as Map<string, string>;
+        const options = i18n.unsplash.randomOrderOptions ;
+        console.log("options",options);
         let selectOptionHtml = `<select class="pmc-setting-${this.config.id}-random-order-by">`;
-        options.forEach((code, name) => {
+        Object.keys(options).forEach((code) => {
+            const name = options[code];
             selectOptionHtml += `<option value="${code}" ${code == this.config.randomOrderBy ? "selected" : ""}>${name}</option>`;
         });
         selectOptionHtml += "</select>";
@@ -187,6 +189,7 @@ export class UnsplashProvider extends CoverProvider<UnsplashConfig> {
             this.config.randomEnable = (html.querySelector(`.pmc-setting-${this.config.id}-random-enable`) as HTMLInputElement).checked;
             const select = html.querySelector(`.pmc-setting-${this.config.id}-random-order-by`) as HTMLSelectElement;
             this.config.randomOrderBy = select.options[select.selectedIndex].value;
+            console.log(`${this.config.id}保存配置：`, this.config);
         });
 
         return `
