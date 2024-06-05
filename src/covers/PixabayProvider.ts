@@ -7,6 +7,7 @@ export class PixabayConfig implements CoverProviderConfig {
     name = "Pixabay";
     enable = false;
     randomEnable = false;
+    randomOrderBy = "popular";
     key = "";
     language = "en";
 
@@ -58,14 +59,26 @@ export interface PixabayResp {
 export class PixabayProvider extends CoverProvider<PixabayConfig> {
     config: PixabayConfig;
 
+
+    maxRandomTotal(): number {
+        return 500;
+    }
+
     randomCovers(pageNum: number): Promise<PageResult> {
-        return Promise.resolve(undefined);
+        const pageSize = this.pageSize();
+        const url = `https://pixabay.com/api/?key=${this.config.key}&q=&lang=${this.config.language}&page=${pageNum}&per_page=${pageSize}&order=${this.config.randomOrderBy}`;
+
+        return this.doSearch(url, pageNum, pageSize);
     }
 
     searchCovers(keyword: string, pageNum: number): Promise<PageResult> {
         const pageSize = this.pageSize();
         const url = `https://pixabay.com/api/?key=${this.config.key}&q=${keyword}&lang=${this.config.language}&page=${pageNum}&per_page=${pageSize}`;
 
+        return this.doSearch(url, pageNum, pageSize);
+    }
+
+    private doSearch(url: string, pageNum: number, pageSize: number) {
         return new Promise<PageResult>((resolve, reject) => {
             fetch(url)
                 .then(response => response.json())
@@ -117,8 +130,22 @@ export class PixabayProvider extends CoverProvider<PixabayConfig> {
                         dialog: Dialog;
                         target: HTMLElement
                     }>): string {
+        saveSetting.then(html => {
+            this.config.enable = (html.querySelector(".pmc-config-enable") as HTMLInputElement).checked;
+            this.config.key = (html.querySelector(".pmc-config-key") as HTMLInputElement).value;
+            this.config.randomEnable = (html.querySelector(`.pmc-setting-${this.config.id}-random-enable`) as HTMLInputElement).checked;
+            const select = html.querySelector(`.pmc-setting-${this.config.id}-random-order-by`) as HTMLSelectElement;
+            this.config.randomOrderBy = select.options[select.selectedIndex].value;
+            console.log(`${this.config.id}保存配置：`, this.config);
+        });
 
-
+        const options = i18n.pixabay.randomOrderOptions;
+        let selectOptionHtml = `<select class="pmc-setting-${this.config.id}-random-order-by">`;
+        Object.keys(options).forEach((code) => {
+            const name = options[code];
+            selectOptionHtml += `<option value="${code}" ${code == this.config.randomOrderBy ? "selected" : ""}>${name}</option>`;
+        });
+        selectOptionHtml += "</select>";
         return `
 <fieldset class="pmc-config-${this.config.id}">
     <legend>&nbsp;${this.config.name}&nbsp;</legend>
@@ -129,6 +156,15 @@ export class PixabayProvider extends CoverProvider<PixabayConfig> {
     </div>
     <div class="pmc-config_line">
         <label>Key:&nbsp;</label><input class="pmc-config-key" type="text" value="${this.config.key}" style="flex: 1">        
+    </div>
+       <div class="pmc-config_line">
+        <label>${i18n.pixabay.randomEnable}:&nbsp;</label>
+        <input type="checkbox" ${this.config.randomEnable ? "checked" : ""} 
+            class="pmc-config-enable pmc-switch b3-switch fn__flex-center pmc-setting-${this.config.id}-random-enable"/>      
+    </div>
+     <div class="pmc-config_line">
+        <label>${i18n.pixabay.randomEnable}:&nbsp;</label>
+        ${selectOptionHtml}
     </div>
 </fieldset>
         `;

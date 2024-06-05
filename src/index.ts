@@ -1,9 +1,21 @@
-import {Dialog, fetchPost, getFrontend, IEventBusMap, IObject, IProtyle, Plugin, showMessage, TEventBus} from "siyuan";
+import {Dialog, fetchPost, getFrontend, IObject, IPosition, IProtyle, ISiyuan, Plugin, showMessage} from "siyuan";
 import "./index.scss";
 import {UnsplashConfig} from "./covers/UnsplashProvider";
 import {PixabayConfig} from "./covers/PixabayProvider";
 import {BindHtmlEvent, Cover, CoverProvider, CoverProviderConfig, PageResult} from "./covers/CoverProvider";
 import {coverProviders} from "./covers/CoverProviderRegister";
+import {getRandomEmoji, IEmoji, updateFileTreeEmoji} from "./util/emoji";
+
+export interface Siyuan extends ISiyuan {
+    emojis?: IEmoji[],
+    layout?: {
+        layout?: { data: { [key: string]: any } },
+        centerLayout?: { data: { [key: string]: any } },
+        leftDock?: { data: { [key: string]: any } },
+        rightDock?: { data: { [key: string]: any } },
+        bottomDock?: { data: { [key: string]: any } },
+    }
+}
 
 interface Background {
     element: HTMLElement;
@@ -14,6 +26,12 @@ interface Background {
     transparentData: string;
 
     render(ial: IObject, rootId: string): void;
+
+    updateFileTreeEmoji(unicode: string, id: string, icon?: string): void;
+
+    updateOutlineEmoji(unicode: string, id: string): void;
+
+    openEmojiPanel(id: string, type: "doc" | "notebook" | "av", position: IPosition, avCB?: (emoji: string) => void): void
 }
 
 /**
@@ -26,7 +44,11 @@ class Configs {
         /**
          * 自动添加封面
          */
-        autoAddCoverIfAbsent: true
+        autoAddCoverIfAbsent: true,
+        /**
+         * 自动添加图标
+         */
+        autoAddIconIfAbsent: true,
     };
     unsplash: UnsplashConfig = new UnsplashConfig();
     pixabay: PixabayConfig = new PixabayConfig();
@@ -35,10 +57,6 @@ class Configs {
 export default class MoreCoverPlugin extends Plugin {
 
     private isMobile: boolean;
-    private pixabayLanguages = {
-        "zh": `${this.i18n.languages.zh}`,
-        "en": `${this.i18n.languages.en}`
-    };
     configs: Configs;
     private providers: Map<string, CoverProvider<CoverProviderConfig>> = new Map();
     storage_name = "more-cover-config";
@@ -110,6 +128,11 @@ export default class MoreCoverPlugin extends Plugin {
             <input type="checkbox" ${this.configs.common.autoAddCoverIfAbsent ? "checked" : ""} 
             class="pmc-config-enable pmc-switch b3-switch fn__flex-center pmc-config-autoAddCoverIfAbsent"/>      
         </div>
+        <div class="pmc-config_line">
+            <label>${this.i18n.autoAddIconIfAbsent}:&nbsp;</label>
+            <input type="checkbox" ${this.configs.common.autoAddIconIfAbsent ? "checked" : ""} 
+            class="pmc-config-enable pmc-switch b3-switch fn__flex-center pmc-config-autoAddIconIfAbsent"/>      
+        </div>
     </fieldset>
     ${coversConfigHtml}
 </div>
@@ -129,6 +152,7 @@ export default class MoreCoverPlugin extends Plugin {
             const common = dialog.element.querySelector(".pmc-config_common");
             this.configs.common.autoSearch = (common.querySelector(".pmc-config-autoSearch") as HTMLInputElement).checked;
             this.configs.common.autoAddCoverIfAbsent = (common.querySelector(".pmc-config-autoAddCoverIfAbsent") as HTMLInputElement).checked;
+            this.configs.common.autoAddIconIfAbsent = (common.querySelector(".pmc-config-autoAddIconIfAbsent") as HTMLInputElement).checked;
 
             // 触发事件
             saveSettingMap.forEach((resolve, provider) => {
@@ -160,6 +184,7 @@ export default class MoreCoverPlugin extends Plugin {
         this.eventBus.on("loaded-protyle-static", event => {
             this.addChangeIconListener(event);
             this.autoAddCoverIfAbsent(event);
+            this.autoAddIconIfAbsent(event);
         });
     }
 
@@ -389,8 +414,7 @@ export default class MoreCoverPlugin extends Plugin {
         // 清空结果
         dialog.element.querySelector(".pmc-rp-result").innerHTML = "";
         dialog.element.querySelector(".pmc-rp-page").innerHTML = "";
-        // 显示遮罩层
-        this.showLoading(dialog, this.i18n.searching, true);
+
         if (searchValue) {
             this.search(dialog, protyle, searchValue, pageNum);
         } else {
@@ -417,6 +441,8 @@ export default class MoreCoverPlugin extends Plugin {
      * @private
      */
     private search(dialog: Dialog, protyle: IProtyle, searchValue: string, pageNum?: number) {
+        // 显示遮罩层
+        this.showLoading(dialog, this.i18n.searching, true);
         // 获取当前配置
         const provider = this.getActiveProvider(dialog);
         provider.searchCovers(searchValue, pageNum).then(pageInfo => {
@@ -538,6 +564,11 @@ export default class MoreCoverPlugin extends Plugin {
     private random(dialog: Dialog, protyle: IProtyle, pageNum: number) {
         // 获取当前配置
         const provider = this.getActiveProvider(dialog);
+        if (!provider.config.randomEnable) {
+            return;
+        }
+        // 显示遮罩层
+        this.showLoading(dialog, this.i18n.searching, true);
         provider.randomCovers(pageNum).then(pageInfo => {
             console.log("pageInfo", pageInfo);
             this.showResult(dialog, protyle, provider, pageInfo);
@@ -680,7 +711,6 @@ export default class MoreCoverPlugin extends Plugin {
             console.log("关闭自动添加封面");
             return;
         }
-        console.log(event);
         const protyle = event.detail.protyle;
         fetchPost("/api/attr/getBlockAttrs", {
             id: protyle.block.rootID,
@@ -696,7 +726,10 @@ export default class MoreCoverPlugin extends Plugin {
                     provider = value;
                 }
             });
-            console.log(response, provider);
+            if (!provider) {
+                showMessage(this.i18n.cantFindEnableRandom);
+                return;
+            }
             const maxPageNum = Math.floor(provider.maxRandomTotal() / provider.pageSize());
             console.log(`最大可随机页码 ${maxPageNum}`);
             let pageNum = Math.floor(Math.random() * maxPageNum);
@@ -716,11 +749,48 @@ export default class MoreCoverPlugin extends Plugin {
                         this.changeCover(null, provider, cover, protyle);
                     }).catch(reason => {
                         console.log(reason);
+                        showMessage(`下载文档 ${data.title} 的封面完成`);
                     });
                 }
             ).catch(reason => {
                 console.log(reason);
+                showMessage(`下载文档 ${data.title} 的封面失败：${reason}`);
+
             });
+        });
+    }
+
+    private autoAddIconIfAbsent(event: CustomEvent<{ protyle: IProtyle }>) {
+        if (!this.configs.common.autoAddIconIfAbsent) {
+            console.log("关闭自动添加图标");
+            return;
+        }
+        console.log(event);
+        const protyle = event.detail.protyle;
+        fetchPost("/api/attr/getBlockAttrs", {
+            id: protyle.block.rootID,
+        }, response => {
+            const data = response.data as { id: string, title: string, icon: string; };
+            if (data.icon) {
+                return;
+            }
+            const allowIds = ["nature", "food", "activity", "travel", "objects"];
+            const emoji = getRandomEmoji(allowIds);
+            if (!emoji) {
+                return;
+            }
+            console.log(`随机生成图标：${emoji}`);
+            const background = protyle.background as Background;
+            updateFileTreeEmoji(emoji, protyle.block.rootID);
+            // updateOutlineEmoji(emoji, protyle.block.rootID);
+            fetchPost("/api/attr/setBlockAttrs", {
+                id: protyle.block.rootID,
+                attrs: {"icon": emoji}
+            });
+            if (protyle.model) {
+                protyle.model.parent.setDocIcon(emoji);
+            }
+            background.iconElement.classList.remove("fn__none");
         });
     }
 }

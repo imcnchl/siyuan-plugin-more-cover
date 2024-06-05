@@ -18,6 +18,8 @@
   "save": "Save",
   "cancel": "Cancel",
   "autoAddCoverIfAbsent": "Auto add cover if absent",
+  "autoAddIconIfAbsent": "Auto add icon if absent",
+  "cantFindEnableRandom": "Can't find enable random config",
   "unsplash": {
     "applicationNameNotNull": "Unsplash Application Name can't be null.",
     "accessKeyNotNull": "Unsplash Access Key can't be null.",
@@ -30,7 +32,13 @@
     }
   },
   "pixabay": {
-    "keyNotNull": "Pixabay Key can't be null."
+    "keyNotNull": "Pixabay Key can't be null.",
+    "randomEnable": "Show random images",
+    "randomOrderBy": "Random images order by",
+    "randomOrderOptions": {
+      "latest": "latest",
+      "popular": "popular"
+    }
   },
   "languages": {
     "zh": "Chinese",

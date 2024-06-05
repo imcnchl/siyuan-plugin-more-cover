@@ -1,4 +1,4 @@
-import {Dialog, I18N, IProtyle} from "siyuan";
+import {Dialog, I18N} from "siyuan";
 import MoreCoverPlugin from "../index";
 
 /**
