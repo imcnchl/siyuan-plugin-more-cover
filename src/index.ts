@@ -791,6 +791,8 @@ export default class MoreCoverPlugin extends Plugin {
                 protyle.model.parent.setDocIcon(emoji);
             }
             background.iconElement.classList.remove("fn__none");
+            // 适配 Asri 主题
+            background.element.classList.remove("without-icon");
         });
     }
 }
