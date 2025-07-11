@@ -18,6 +18,10 @@
   "save": "Save",
   "cancel": "Cancel",
   "autoAddCoverIfAbsent": "Auto add cover if absent",
+  "autoAddCoverType": "Auto add cover type",
+  "autoAddCoverTypeLocal": "Local",
+  "autoAddCoverTypeRemote": "Remote",
+  "autoAddCoverLocalKeyword": "Search local resource keyword",
   "autoAddIconIfAbsent": "Auto add icon if absent",
   "cantFindEnableRandom": "Can't find enable random config",
   "unsplash": {

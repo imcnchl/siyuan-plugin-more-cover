@@ -18,6 +18,10 @@
   "save": "保存",
   "cancel": "取消",
   "autoAddCoverIfAbsent": "自动添加封面",
+  "autoAddCoverType": "自动添加封面类型",
+  "autoAddCoverTypeLocal": "本地",
+  "autoAddCoverTypeRemote": "远程",
+  "autoAddCoverLocalKeyword": "搜索本地资源关键词",
   "autoAddIconIfAbsent": "自动添加图标",
   "cantFindEnableRandom": "找不到启用随机图片的配置",
   "unsplash": {

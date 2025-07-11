@@ -46,6 +46,16 @@ class Configs {
          */
         autoAddCoverIfAbsent: true,
         /**
+         * 自动添加封面类型
+         * local: 本地
+         * remote: 远程
+         */
+        autoAddCoverType: "local",
+        /**
+         * 本地封面关键字
+         */
+        autoAddCoverLocalKeyword: "unsplash-",
+        /**
          * 自动添加图标
          */
         autoAddIconIfAbsent: true,
@@ -128,6 +138,14 @@ export default class MoreCoverPlugin extends Plugin {
             <input type="checkbox" ${this.configs.common.autoAddCoverIfAbsent ? "checked" : ""} 
             class="pmc-config-enable pmc-switch b3-switch fn__flex-center pmc-config-autoAddCoverIfAbsent"/>      
         </div>
+         <div class="pmc-config_line pmc-config-line-autoAddCoverType">
+            <label>${this.i18n.autoAddCoverType}:&nbsp;</label>
+            <select class="pmc-config-autoAddCoverType">
+                <option value="local">${this.i18n.autoAddCoverTypeLocal}</option>
+                <option value="remote">${this.i18n.autoAddCoverTypeRemote}</option>
+            </select>
+            <input class="pmc-config-autoAddCoverLocalKeyword" placeholder="${this.i18n.autoAddCoverLocalKeyword}" type="text" value="${this.configs.common.autoAddCoverLocalKeyword || ""}" style="flex: 1">        
+        </div>
         <div class="pmc-config_line">
             <label>${this.i18n.autoAddIconIfAbsent}:&nbsp;</label>
             <input type="checkbox" ${this.configs.common.autoAddIconIfAbsent ? "checked" : ""} 
@@ -143,6 +161,24 @@ export default class MoreCoverPlugin extends Plugin {
 </div>`,
             width: this.isMobile ? "92vw" : "520px",
         });
+        // pmc-config-line-autoAddCoverType 根据 pmc-config-autoAddCoverIfAbsent 开关判断是否显示
+        // 监听 pmc-config-autoAddCoverIfAbsent 的 change 事件
+        const autoAddCoverIfAbsent = dialog.element.querySelector(".pmc-config-autoAddCoverIfAbsent") as HTMLInputElement;
+        autoAddCoverIfAbsent.addEventListener("change", () => {
+            const autoAddCoverType = dialog.element.querySelector(".pmc-config-line-autoAddCoverType") as HTMLSelectElement;
+            autoAddCoverType.classList.toggle("pmc-hide", !autoAddCoverIfAbsent.checked);
+        });
+        // 初始化
+        autoAddCoverIfAbsent.dispatchEvent(new Event("change"));
+        // 选中 autoAddCoverTypeLocal，才需要显示 autoAddCoverLocalKeyword，否则隐藏
+        // 监听 autoAddCoverType 的 change 事件
+        const autoAddCoverLocalKeyword = dialog.element.querySelector(".pmc-config-autoAddCoverLocalKeyword") as HTMLInputElement;
+        const autoAddCoverType = dialog.element.querySelector(".pmc-config-autoAddCoverType") as HTMLSelectElement;
+        autoAddCoverType.addEventListener("change", () => {
+            autoAddCoverLocalKeyword.classList.toggle("pmc-hide", autoAddCoverType.value !== "local");
+        });
+        // 初始化
+        autoAddCoverType.dispatchEvent(new Event("change"));
 
         const buttons = dialog.element.querySelectorAll(".b3-button");
         buttons[0].addEventListener("click", () => {
@@ -153,7 +189,8 @@ export default class MoreCoverPlugin extends Plugin {
             this.configs.common.autoSearch = (common.querySelector(".pmc-config-autoSearch") as HTMLInputElement).checked;
             this.configs.common.autoAddCoverIfAbsent = (common.querySelector(".pmc-config-autoAddCoverIfAbsent") as HTMLInputElement).checked;
             this.configs.common.autoAddIconIfAbsent = (common.querySelector(".pmc-config-autoAddIconIfAbsent") as HTMLInputElement).checked;
-
+            this.configs.common.autoAddCoverType = (common.querySelector(".pmc-config-autoAddCoverType") as HTMLSelectElement).value;
+            this.configs.common.autoAddCoverLocalKeyword = (common.querySelector(".pmc-config-autoAddCoverLocalKeyword") as HTMLInputElement).value;
             // 触发事件
             saveSettingMap.forEach((resolve, provider) => {
                 const target = provider.getSettingHtml(dialog);
@@ -234,7 +271,6 @@ export default class MoreCoverPlugin extends Plugin {
     }
 
     private changeCover(dialog: Dialog, provider: CoverProvider<any>, cover: Cover, protyle: IProtyle) {
-        const background = protyle.background;
         // 设置文字：正在上传图片到思源，请稍候
         this.showLoading(dialog, this.i18n.uploadingCover, false);
         // 上传资源文件
@@ -249,23 +285,30 @@ export default class MoreCoverPlugin extends Plugin {
             const succMap = resp.data.succMap;
             console.log(`${this.i18n.pluginName}: 上传封面成功`, succMap);
             this.showLoading(dialog, this.i18n.settingCover, false);
+            const assetPath = succMap[fileName];
             // 重新设置封面
-            fetchPost("/api/attr/setBlockAttrs", {
-                id: background.ial["id"],
-                attrs: {
-                    "title-img": `background-image:url(${succMap[fileName]})`
-                }
-            }, r => {
-                showMessage(`${this.i18n.pluginName}: ${this.i18n.setCoverSuccess}`);
-                console.log(`${this.i18n.pluginName}: 设置封面成功`, r);
-                // 更新封面
-                background.ial["title-img"] = `background-image:url("${succMap[fileName]}")`;
-                // @ts-ignore
-                background.render(background.ial, protyle.block.rootID);
+            this.changeCoverByAssetPath(dialog, protyle, assetPath);
+        });
+    }
 
-                // 关闭 dialog
-                dialog?.destroy();
-            });
+    private changeCoverByAssetPath(dialog: Dialog, protyle: IProtyle, assetPath: string) {
+        const background = protyle.background;
+
+        fetchPost("/api/attr/setBlockAttrs", {
+            id: background.ial["id"],
+            attrs: {
+                "title-img": `background-image:url(${assetPath})`
+            }
+        }, r => {
+            showMessage(`${this.i18n.pluginName}: ${this.i18n.setCoverSuccess}`);
+            console.log(`${this.i18n.pluginName}: 设置封面成功`, r);
+            // 更新封面
+            background.ial["title-img"] = `background-image:url("${assetPath}")`;
+            // @ts-ignore
+            background.render(background.ial, protyle.block.rootID);
+
+            // 关闭 dialog
+            dialog?.destroy();
         });
     }
 
@@ -715,48 +758,77 @@ export default class MoreCoverPlugin extends Plugin {
         fetchPost("/api/attr/getBlockAttrs", {
             id: protyle.block.rootID,
         }, response => {
-            const data = response.data as { id: string, title: string, "title-img": string, type: string; };
+            const data = response.data as { id: string, title: string, "title-img": string, type: string};
             if (data["title-img"]) {
                 return;
             }
             showMessage((`文档 ${data.title} 不存在封面，准备生成随机封面`));
-            let provider: CoverProvider<any>;
-            this.providers.forEach(value => {
-                if (value.config.randomEnable && !provider) {
-                    provider = value;
-                }
-            });
-            if (!provider) {
-                showMessage(this.i18n.cantFindEnableRandom);
+             // 判断是否是本地封面
+            if (this.configs.common.autoAddCoverType === "local") {
+                this.autoAddCoverIfAbsentWithLocal(event, data.title);
+            } else {
+                this.autoAddCoverIfAbsentWithRemote(event, data.title);
+            }
+        });
+    }
+
+    private autoAddCoverIfAbsentWithLocal(event: CustomEvent<{ protyle: IProtyle }>, title: string) {
+        console.log("使用本地资源随机生成封面");
+        fetchPost("/api/search/searchAsset", {
+            k: this.configs.common.autoAddCoverLocalKeyword || "",
+            exts: [ ".apng", ".ico", ".cur", ".jpg", ".jpe", ".jpeg", ".jfif", ".pjp", ".pjpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".avif" ]
+        }, response => {
+            const items = response.data as { hName: string, path: string, updated: number}[];
+            if (items.length === 0) {
+                showMessage(`未找到本地封面，请检查配置`);
                 return;
             }
-            const maxPageNum = Math.floor(provider.maxRandomTotal() / provider.pageSize());
-            console.log(`最大可随机页码 ${maxPageNum}`);
-            let pageNum = Math.floor(Math.random() * maxPageNum);
-            pageNum = pageNum > 1 ? pageNum : 1;
-            provider.randomCovers(pageNum).then((result) => {
-                    if (!result.items || result.items.length === 0) {
-                        return;
-                    }
-                    let size = result.items.length;
-                    size = Math.floor(Math.random() * size);
-                    const image = result.items[size];
-                    console.log("随机到封面：", image);
-                    showMessage(`开始下载文档 ${data.title} 的封面`);
-                    provider.downloadCover2({id: image.id, url: image.downloadUrl}).then(cover => {
-                        console.log("cover", cover);
-                        showMessage(`下载文档 ${data.title} 的封面完成`);
-                        this.changeCover(null, provider, cover, protyle);
-                    }).catch(reason => {
-                        console.log(reason);
-                        showMessage(`下载文档 ${data.title} 的封面完成`);
-                    });
-                }
-            ).catch(reason => {
-                console.log(reason);
-                showMessage(`下载文档 ${data.title} 的封面失败：${reason}`);
+            // 随机选择一个封面
+            const item = items[Math.floor(Math.random() * items.length)];
+            const protyle = event.detail.protyle;
+            this.changeCoverByAssetPath(null, protyle, item.path);
+        })
+    }
 
-            });
+    private autoAddCoverIfAbsentWithRemote(event: CustomEvent<{ protyle: IProtyle }>, title: string) {
+        console.log("使用远程资源随机生成封面");
+        const protyle = event.detail.protyle;
+        let provider: CoverProvider<any>;
+        this.providers.forEach(value => {
+            if (value.config.randomEnable && !provider) {
+                provider = value;
+            }
+        });
+        if (!provider) {
+            showMessage(this.i18n.cantFindEnableRandom);
+            return;
+        }
+        const maxPageNum = Math.floor(provider.maxRandomTotal() / provider.pageSize());
+        console.log(`最大可随机页码 ${maxPageNum}`);
+        let pageNum = Math.floor(Math.random() * maxPageNum);
+        pageNum = pageNum > 1 ? pageNum : 1;
+        provider.randomCovers(pageNum).then((result) => {
+                if (!result.items || result.items.length === 0) {
+                    return;
+                }
+                let size = result.items.length;
+                size = Math.floor(Math.random() * size);
+                const image = result.items[size];
+                console.log("随机到封面：", image);
+                showMessage(`开始下载文档 ${title} 的封面`);
+                provider.downloadCover2({id: image.id, url: image.downloadUrl}).then(cover => {
+                    console.log("cover", cover);
+                    showMessage(`下载文档 ${title} 的封面完成`);
+                    this.changeCover(null, provider, cover, protyle);
+                }).catch(reason => {
+                    console.log(reason);
+                    showMessage(`下载文档 ${title} 的封面完成`);
+                });
+            }
+        ).catch(reason => {
+            console.log(reason);
+            showMessage(`下载文档 ${title} 的封面失败：${reason}`);
+
         });
     }
 

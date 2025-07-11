@@ -4,6 +4,12 @@
 
 <font color="red">**注意：首次使用或更新插件后需要重启SiYuan，让插件生效**</font>
 
+## 最近更新内容
+
+### v1.3.0
+
+* 支持随机本地图片资源
+
 ## 配置
 
 1. 打开配置页面 ![open_config1.png](https://s2.loli.net/2023/08/21/NO6gTbWQZPHAuaI.png)
@@ -36,6 +42,10 @@
 1. 拷贝Key ![pixabay_key.png](https://s2.loli.net/2023/08/21/xdQnz5p2jsMVaH3.png)
 
 # 变更记录
+
+## v1.3.0
+
+* 支持随机本地图片资源
 
 ## v1.2.2
 
